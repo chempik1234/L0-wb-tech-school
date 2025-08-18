@@ -1,0 +1,284 @@
+openapi: 3.0.0
+info:
+  title: Order Service API
+  description: API for L0 Wildberries tech school task (Deepseek-vibecoded and rechecked)
+  version: 1.0.0
+servers:
+  - url: http://localhost:8080
+    description: dev deploy
+
+paths:
+  /order/{id}:
+    get:
+      summary: Get order by ID
+      description: Returns the order details for the given order ID
+      parameters:
+        - name: id
+          in: path
+          description: Order ID
+          required: true
+          schema:
+            type: string
+            minLength: 1
+            maxLength: 50
+            example: "b563feb7b2b84b6test"
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrderResponse'
+        '400':
+          description: Invalid ID supplied
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BadRequestErrorResponse'
+        '404':
+          description: Order not found
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NotFoundErrorResponse'
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+        default:
+          description: Unknown error
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ErrorResponse'
+
+components:
+  schemas:
+    # Order Response Model
+    OrderResponse:
+      type: object
+      properties:
+        order_uid:
+          type: string
+          example: "b563feb7b2b84b6test"
+        track_number:
+          type: string
+          example: "WBILMTESTTRACK"
+        entry:
+          type: string
+          example: "WBIL"
+        delivery:
+          $ref: '#/components/schemas/Delivery'
+        payment:
+          $ref: '#/components/schemas/Payment'
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrderItem'
+        locale:
+          type: string
+          enum: [en, ru, de, fr, es, zh]
+          example: "en"
+        internal_signature:
+          type: string
+          example: ""
+        customer_id:
+          type: string
+          example: "test"
+        delivery_service:
+          type: string
+          example: "meest"
+        shardkey:
+          type: string
+          example: "9"
+        sm_id:
+          type: integer
+          example: 99
+        date_created:
+          type: string
+          format: date-time
+          example: "2021-11-26T06:22:19Z"
+        oof_shard:
+          type: string
+          example: "1"
+      required:
+        - order_uid
+        - track_number
+        - entry
+        - delivery
+        - payment
+        - items
+        - locale
+        - customer_id
+        - delivery_service
+        - shardkey
+        - sm_id
+        - date_created
+        - oof_shard
+
+    # Delivery Model
+    Delivery:
+      type: object
+      properties:
+        name:
+          type: string
+          example: "Test Testov"
+        phone:
+          type: string
+          example: "+9720000000"
+        zip:
+          type: string
+          example: "2639809"
+        city:
+          type: string
+          example: "Kiryat Mozkin"
+        address:
+          type: string
+          example: "Ploshad Mira 15"
+        region:
+          type: string
+          example: "Kraiot"
+        email:
+          type: string
+          format: email
+          example: "test@gmail.com"
+      required:
+        - name
+        - phone
+        - zip
+        - city
+        - address
+        - region
+        - email
+
+    # Payment Model
+    Payment:
+      type: object
+      properties:
+        transaction:
+          type: string
+          example: "b563feb7b2b84b6test"
+        request_id:
+          type: string
+          example: ""
+        currency:
+          type: string
+          enum: [USD, EUR, RUB, GBP, JPY]
+          example: "USD"
+        provider:
+          type: string
+          example: "wbpay"
+        amount:
+          type: integer
+          example: 1817
+        payment_dt:
+          type: integer
+          format: int64
+          example: 1637907727
+        bank:
+          type: string
+          example: "alpha"
+        delivery_cost:
+          type: integer
+          example: 1500
+        goods_total:
+          type: integer
+          example: 317
+        custom_fee:
+          type: integer
+          example: 0
+      required:
+        - transaction
+        - currency
+        - provider
+        - amount
+        - payment_dt
+        - bank
+        - delivery_cost
+        - goods_total
+        - custom_fee
+
+    # Order Item Model
+    OrderItem:
+      type: object
+      properties:
+        chrt_id:
+          type: integer
+          format: int64
+          example: 9934930
+        track_number:
+          type: string
+          example: "WBILMTESTTRACK"
+        price:
+          type: integer
+          example: 453
+        rid:
+          type: string
+          example: "ab4219087a764ae0btest"
+        name:
+          type: string
+          example: "Mascaras"
+        sale:
+          type: integer
+          minimum: 0
+          maximum: 100
+          example: 30
+        size:
+          type: string
+          example: "0"
+        total_price:
+          type: integer
+          example: 317
+        nm_id:
+          type: integer
+          format: int64
+          example: 2389212
+        brand:
+          type: string
+          example: "Vivienne Sabo"
+        status:
+          type: integer
+          example: 202
+      required:
+        - chrt_id
+        - track_number
+        - price
+        - rid
+        - name
+        - sale
+        - size
+        - total_price
+        - nm_id
+        - brand
+        - status
+
+    # Error Response Model
+    ErrorResponse:
+      type: object
+      properties:
+        message:
+          type: string
+          description: Error message
+          example: "Some error message"
+      required:
+        - message
+    BadRequestErrorResponse:
+      allOf:
+        - $ref: "#/components/schemas/ErrorResponse"
+        - type: object
+          properties:
+            message:
+              type: string
+              description: Additional error details
+              example: "Some validation failed"
+    NotFoundErrorResponse:
+      allOf:
+        - $ref: "#/components/schemas/ErrorResponse"
+        - type: object
+          properties:
+            message:
+              type: string
+              description: Additional error details
+              example: "No order exists with ID 'some-id'"
