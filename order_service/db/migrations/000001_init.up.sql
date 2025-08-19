@@ -3,17 +3,6 @@ BEGIN;
 
 CREATE SCHEMA IF NOT EXISTS order_service;
 
--- Enums for fun, wrap in a nested transaction to implement "if not exists"
-DO
-$$
-    BEGIN
-        CREATE TYPE order_status AS ENUM ('pending', 'processing', 'completed', 'cancelled');
-    EXCEPTION
-        WHEN duplicate_object THEN null;
-    END
-$$;
--- No locale/currency enum because there're too much of them
-
 CREATE TABLE IF NOT EXISTS order_service.orders
 (
     order_uid          VARCHAR(50)              NOT NULL PRIMARY KEY,
