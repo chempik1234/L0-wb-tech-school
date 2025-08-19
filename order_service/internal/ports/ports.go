@@ -14,6 +14,8 @@ type OrderStorage interface {
 // OrderReceiver port describes a message queue consumer that gets orders for save, e.g. kafka
 //
 // it has an ability to be run and stopped (Run, process orders, GracefulStop)
-type OrderReceiver interface {
-	Consume(ctx context.Context) (models.Order, error)
+type OrderReceiver[T any] interface {
+	Consume(ctx context.Context) (models.Order, T, error)
+	OnSuccess(ctx context.Context, givenMessage T) error
+	OnFail(ctx context.Context, givenMessage T) error
 }

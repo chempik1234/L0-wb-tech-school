@@ -8,14 +8,14 @@ import (
 	"time"
 )
 
-func RunOrderReceiver(ctx context.Context, receiver *service.OrderReceiverService) {
+func RunOrderReceiver[T any](ctx context.Context, receiver *service.OrderReceiverService[T]) {
 	logger.GetLoggerFromCtx(ctx).Info(ctx, "starting receiving orders")
 	if err := receiver.StartReceivingOrders(ctx); err != nil {
 		logger.GetLoggerFromCtx(ctx).Error(ctx, "failed to receive orders", zap.Error(err))
 	}
 }
 
-func ShutdownOrderReceiver(ctx context.Context, receiver *service.OrderReceiverService) {
+func ShutdownOrderReceiver[T any](ctx context.Context, receiver *service.OrderReceiverService[T]) {
 	cancelCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 

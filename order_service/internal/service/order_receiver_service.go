@@ -11,18 +11,18 @@ import (
 
 type ProcessOrderFunction func(context.Context, models.Order) error
 
-type OrderReceiverService struct {
-	receiver             ports.OrderReceiver
+type OrderReceiverService[T any] struct {
+	receiver             ports.OrderReceiver[T]
 	processOrderFunction ProcessOrderFunction
 
 	done chan struct{}
 }
 
-func NewOrderReceiverService(receiver ports.OrderReceiver, processOrderFunction ProcessOrderFunction) *OrderReceiverService {
-	return &OrderReceiverService{receiver: receiver, processOrderFunction: processOrderFunction, done: make(chan struct{})}
+func NewOrderReceiverService[T any](receiver ports.OrderReceiver[T], processOrderFunction ProcessOrderFunction) *OrderReceiverService[T] {
+	return &OrderReceiverService[T]{receiver: receiver, processOrderFunction: processOrderFunction, done: make(chan struct{})}
 }
 
-func (s *OrderReceiverService) StartReceivingOrders(ctx context.Context) error {
+func (s *OrderReceiverService[_]) StartReceivingOrders(ctx context.Context) error {
 out:
 	for {
 		select {
@@ -32,7 +32,7 @@ out:
 			break out
 		default:
 			// step 1: try to consume
-			order, err := s.receiver.Consume(ctx)
+			order, msg, err := s.receiver.Consume(ctx)
 			if err != nil {
 				logger.GetLoggerFromCtx(ctx).Error(ctx, "error while receiving orders",
 					zap.Error(err))
@@ -51,6 +51,15 @@ out:
 				err = s.ProcessOrder(ctx, order)
 				if err != nil {
 					logger.GetLoggerFromCtx(ctx).Error(ctx, "error while processing order", zap.Error(err))
+					err = s.receiver.OnFail(ctx, msg)
+					if err != nil {
+						logger.GetLoggerFromCtx(ctx).Error(ctx, "error while committing message failure", zap.Error(err))
+					}
+				} else {
+					err = s.receiver.OnSuccess(ctx, msg)
+					if err != nil {
+						logger.GetLoggerFromCtx(ctx).Error(ctx, "error while committing successful message", zap.Error(err))
+					}
 				}
 			}()
 		}
@@ -58,11 +67,11 @@ out:
 	return nil
 }
 
-func (s *OrderReceiverService) ProcessOrder(ctx context.Context, order models.Order) error {
+func (s *OrderReceiverService[_]) ProcessOrder(ctx context.Context, order models.Order) error {
 	return s.processOrderFunction(ctx, order)
 }
 
-func (s *OrderReceiverService) StopReceivingOrders(ctx context.Context) {
+func (s *OrderReceiverService[_]) StopReceivingOrders(ctx context.Context) {
 	// please tell me if it's nice or bad
 	s.done <- struct{}{}
 }
