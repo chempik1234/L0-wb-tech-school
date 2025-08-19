@@ -6,9 +6,11 @@ import (
 	"github.com/Masterminds/squirrel"
 	"github.com/go-faster/errors"
 	"github.com/jackc/pgx/v5"
+	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"order_service/internal/custom_errors"
 	"order_service/internal/models"
+	"strings"
 )
 
 type OrdersStoragePostgres struct {
@@ -33,7 +35,7 @@ func (o *OrdersStoragePostgres) GetOrderById(ctx context.Context, orderId string
 		var err error
 		order, err = o.getOrderByIdBase(ctx, orderId)
 		if err != nil {
-			errorsChan <- fmt.Errorf("error while trying to get order itself: %w", err)
+			errorsChan <- fmt.Errorf("error trying to get order itself: %w", err)
 		} else {
 			errorsChan <- nil
 		}
@@ -43,7 +45,7 @@ func (o *OrdersStoragePostgres) GetOrderById(ctx context.Context, orderId string
 		var err error
 		items, err = o.getOrderItemsById(ctx, orderId)
 		if err != nil {
-			errorsChan <- fmt.Errorf("error while trying to order items: %w", err)
+			errorsChan <- fmt.Errorf("error trying to order items: %w", err)
 		} else {
 			errorsChan <- nil
 		}
@@ -112,7 +114,7 @@ func (o *OrdersStoragePostgres) getOrderByIdBase(ctx context.Context, orderId st
 			return models.Order{}, custom_errors.ErrOrderNotFound
 		}
 
-		return models.Order{}, fmt.Errorf("error while mapping query result fields: %w", err)
+		return models.Order{}, fmt.Errorf("error mapping query result fields: %w", err)
 	}
 
 	if order.OrderUID == "" {
@@ -162,6 +164,154 @@ func (o *OrdersStoragePostgres) getOrderItemsById(ctx context.Context, orderId s
 }
 
 func (o *OrdersStoragePostgres) SaveOrder(ctx context.Context, order models.Order) error {
-	//TODO implement me
-	panic("implement me")
+	transaction, err := o.pool.Begin(ctx)
+	if err != nil {
+		return fmt.Errorf("couldn't start transaction: %v", err)
+	}
+
+	defer func() {
+		if err != nil {
+			err = fmt.Errorf("error saving order transaction, rolling back: %w", err)
+			rollbackErr := transaction.Rollback(ctx)
+			if rollbackErr != nil {
+				err = fmt.Errorf("error rolling back transaction: %w. caused after this error: %w",
+					rollbackErr, err)
+			}
+		}
+		err = transaction.Commit(ctx)
+	}()
+
+	err = saveOrder(ctx, transaction, &order)
+	if err != nil {
+		return fmt.Errorf("couldn't save order: %w", err)
+	}
+
+	err = savePayment(ctx, transaction, order.OrderUID, &order.Payment)
+	if err != nil {
+		return fmt.Errorf("error saving payment: %w", err)
+	}
+
+	err = saveDelivery(ctx, transaction, order.OrderUID, &order.Delivery)
+	if err != nil {
+		return fmt.Errorf("error saving delivery: %w", err)
+	}
+
+	err = saveItems(ctx, transaction, order.OrderUID, &order.Items)
+	if err != nil {
+		return fmt.Errorf("error saving items: %w", err)
+	}
+
+	// check defer for more possible errors
+	return err
+}
+
+func saveOrder(ctx context.Context, transaction pgx.Tx, order *models.Order) error {
+	sql, args, err := squirrel.
+		Insert("order_service.orders").
+		Columns(
+			"order_uid", "track_number", "entry", "locale", "internal_signature", "customer_id",
+			"delivery_service", "shardkey", "sm_id", "date_created", "oof_shard",
+		).
+		Values(
+			order.OrderUID, order.TrackNumber, order.Entry, order.Locale, order.InternalSignature, order.CustomerId,
+			order.DeliveryService, order.ShardKey, order.SmId, order.DateCreated, order.OofShard,
+		).
+		PlaceholderFormat(squirrel.Dollar).
+		ToSql()
+
+	if err != nil {
+		return fmt.Errorf("couldn't build an SQL query: %w", err)
+	}
+
+	var result pgconn.CommandTag
+	result, err = transaction.Exec(ctx, sql, args...)
+	if err != nil {
+		return fmt.Errorf("couldn't exec save order query: %w", err)
+	}
+	if result.RowsAffected() != 1 {
+		return fmt.Errorf("couldn't save order query, rows affected: %d, expected: 1", result.RowsAffected())
+	}
+	return err
+}
+
+func savePayment(ctx context.Context, transaction pgx.Tx, orderUid string, payment *models.Payment) error {
+	sql, args, err := squirrel.
+		Insert("order_service.payments").
+		Columns(
+			"order_id", "transaction", "request_id", "currency", "provider",
+			"amount", "payment_dt", "bank", "delivery_cost", "goods_total", "custom_fee",
+		).
+		Values(
+			orderUid, payment.Transaction, payment.RequestId, payment.Currency,
+			payment.Provider, payment.Amount, payment.PaymentDt, payment.Bank,
+			payment.DeliveryCost, payment.GoodsTotal, payment.CustomFee,
+		).
+		PlaceholderFormat(squirrel.Dollar).
+		ToSql()
+
+	if err != nil {
+		return fmt.Errorf("couldn't build an SQL query: %w", err)
+	}
+
+	var result pgconn.CommandTag
+	result, err = transaction.Exec(ctx, sql, args...)
+	if err != nil {
+		return fmt.Errorf("couldn't exec save payment query: %w", err)
+	}
+	if result.RowsAffected() != 1 {
+		return fmt.Errorf("couldn't save payment, rows affected: %d, expected: 1", result.RowsAffected())
+	}
+	return err
+}
+
+func saveDelivery(ctx context.Context, transaction pgx.Tx, orderUid string, delivery *models.Delivery) error {
+	sql, args, err := squirrel.
+		Insert("order_service.deliveries").
+		Columns(
+			"order_id", "name", "phone", "zip", "city", "address", "region", "email",
+		).
+		Values(
+			orderUid, delivery.Name, delivery.Phone, delivery.Zip, delivery.City, delivery.Address,
+		).
+		PlaceholderFormat(squirrel.Dollar).
+		ToSql()
+
+	if err != nil {
+		return fmt.Errorf("couldn't build an SQL query: %w", err)
+	}
+
+	var result pgconn.CommandTag
+	result, err = transaction.Exec(ctx, sql, args...)
+	if err != nil {
+		return fmt.Errorf("couldn't exec save delivery query: %w", err)
+	}
+	if result.RowsAffected() != 1 {
+		return fmt.Errorf("couldn't save delivery, rows affected: %d, expected: 1", result.RowsAffected())
+	}
+	return err
+}
+
+func saveItems(ctx context.Context, transaction pgx.Tx, orderUid string, items *[]models.OrderItem) error {
+	if len(*items) == 0 {
+		return nil
+	}
+
+	valuesList := make([]string, len(*items))
+	for i, item := range *items {
+		valuesList[i] = fmt.Sprintf("(\"%s\",\"%d\",\"%s\",\"%d\",\"%s\",\"%s\",\"%d\",\"%s\",\"%d\",\"%d\",\"%s\",\"%d\")",
+			orderUid, item.ChrtId, item.TrackNumber, item.Price, item.RId, item.Name, item.Sale, item.Size,
+			item.TotalPrice, item.NmId, item.Brand, item.Status)
+	}
+	values := strings.Join(valuesList, ",")
+
+	sql := fmt.Sprintf(
+		"INSERT INTO order_service.order_items(\"order_id\", \"chrt_id\", \"track_number\", \"price\", \"rid\", \"name\", \"sale\", \"size\", \"total_price\", \"nm_id\", \"brand\", \"status\") VALUES %s",
+		values,
+	)
+
+	_, err := transaction.Exec(ctx, sql)
+	if err != nil {
+		return fmt.Errorf("couldn't exec save delivery query: %w", err)
+	}
+	return err
 }
