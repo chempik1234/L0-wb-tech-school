@@ -22,15 +22,37 @@ func NewOrdersStoragePostgres(pool *pgxpool.Pool) *OrdersStoragePostgres {
 }
 
 func (o *OrdersStoragePostgres) GetOrderById(ctx context.Context, orderId string) (models.Order, error) {
-	order, err := o.getOrderByIdBase(ctx, orderId)
-	if err != nil {
-		return models.Order{}, fmt.Errorf("error while trying to get order itself: %w", err)
-	}
-
 	var items []models.OrderItem
-	items, err = o.getOrderItemsById(ctx, orderId)
-	if err != nil {
-		return models.Order{}, fmt.Errorf("error while trying to order items: %w", err)
+	var order models.Order
+
+	// to parallel 2 queries, we launch them separately and check if they produced any non-nil errors
+	// buffer of 2 prevents deadlock
+	errorsChan := make(chan error, 2)
+
+	go func() {
+		var err error
+		order, err = o.getOrderByIdBase(ctx, orderId)
+		if err != nil {
+			errorsChan <- fmt.Errorf("error while trying to get order itself: %w", err)
+		} else {
+			errorsChan <- nil
+		}
+	}()
+
+	go func() {
+		var err error
+		items, err = o.getOrderItemsById(ctx, orderId)
+		if err != nil {
+			errorsChan <- fmt.Errorf("error while trying to order items: %w", err)
+		} else {
+			errorsChan <- nil
+		}
+	}()
+
+	for i := 0; i < 2; i++ {
+		if err := <-errorsChan; err != nil {
+			return models.Order{}, err
+		}
 	}
 
 	order.Items = items
