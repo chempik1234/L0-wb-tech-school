@@ -83,6 +83,7 @@ services:
       - "80:80"
     volumes:
       - ./nginx/conf.d:/etc/nginx/conf.d
+      - ./nginx/static:/var/static
     depends_on:
       order_service:
         condition: service_started
