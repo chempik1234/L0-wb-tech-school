@@ -21,3 +21,11 @@ var _ Handler = UnimplementedHandler{}
 func (UnimplementedHandler) OrderIDGet(ctx context.Context, params OrderIDGetParams) (r OrderIDGetRes, _ error) {
 	return r, ht.ErrNotImplemented
 }
+
+// NewError creates *ErrorResponseStatusCode from error returned by handler.
+//
+// Used for common default response.
+func (UnimplementedHandler) NewError(ctx context.Context, err error) (r *ErrorResponseStatusCode) {
+	r = new(ErrorResponseStatusCode)
+	return r
+}

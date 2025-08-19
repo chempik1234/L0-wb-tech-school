@@ -3,10 +3,13 @@
 package api
 
 import (
+	"fmt"
 	"time"
-
-	"github.com/go-faster/errors"
 )
+
+func (s *ErrorResponseStatusCode) Error() string {
+	return fmt.Sprintf("code %d: %+v", s.StatusCode, s.Response)
+}
 
 // Merged schema.
 // Ref: #/components/schemas/BadRequestErrorResponse
@@ -125,6 +128,32 @@ func (s *ErrorResponse) SetMessage(val string) {
 }
 
 func (*ErrorResponse) orderIDGetRes() {}
+
+// ErrorResponseStatusCode wraps ErrorResponse with StatusCode.
+type ErrorResponseStatusCode struct {
+	StatusCode int
+	Response   ErrorResponse
+}
+
+// GetStatusCode returns the value of StatusCode.
+func (s *ErrorResponseStatusCode) GetStatusCode() int {
+	return s.StatusCode
+}
+
+// GetResponse returns the value of Response.
+func (s *ErrorResponseStatusCode) GetResponse() ErrorResponse {
+	return s.Response
+}
+
+// SetStatusCode sets the value of StatusCode.
+func (s *ErrorResponseStatusCode) SetStatusCode(val int) {
+	s.StatusCode = val
+}
+
+// SetResponse sets the value of Response.
+func (s *ErrorResponseStatusCode) SetResponse(val ErrorResponse) {
+	s.Response = val
+}
 
 // Merged schema.
 // Ref: #/components/schemas/NotFoundErrorResponse
@@ -318,20 +347,20 @@ func (s *OrderItem) SetStatus(val int) {
 
 // Ref: #/components/schemas/OrderResponse
 type OrderResponse struct {
-	OrderUID          string              `json:"order_uid"`
-	TrackNumber       string              `json:"track_number"`
-	Entry             string              `json:"entry"`
-	Delivery          Delivery            `json:"delivery"`
-	Payment           Payment             `json:"payment"`
-	Items             []OrderItem         `json:"items"`
-	Locale            OrderResponseLocale `json:"locale"`
-	InternalSignature OptString           `json:"internal_signature"`
-	CustomerID        string              `json:"customer_id"`
-	DeliveryService   string              `json:"delivery_service"`
-	Shardkey          string              `json:"shardkey"`
-	SmID              int                 `json:"sm_id"`
-	DateCreated       time.Time           `json:"date_created"`
-	OofShard          string              `json:"oof_shard"`
+	OrderUID          string      `json:"order_uid"`
+	TrackNumber       string      `json:"track_number"`
+	Entry             string      `json:"entry"`
+	Delivery          Delivery    `json:"delivery"`
+	Payment           Payment     `json:"payment"`
+	Items             []OrderItem `json:"items"`
+	Locale            string      `json:"locale"`
+	InternalSignature OptString   `json:"internal_signature"`
+	CustomerID        string      `json:"customer_id"`
+	DeliveryService   string      `json:"delivery_service"`
+	Shardkey          string      `json:"shardkey"`
+	SmID              int         `json:"sm_id"`
+	DateCreated       time.Time   `json:"date_created"`
+	OofShard          string      `json:"oof_shard"`
 }
 
 // GetOrderUID returns the value of OrderUID.
@@ -365,7 +394,7 @@ func (s *OrderResponse) GetItems() []OrderItem {
 }
 
 // GetLocale returns the value of Locale.
-func (s *OrderResponse) GetLocale() OrderResponseLocale {
+func (s *OrderResponse) GetLocale() string {
 	return s.Locale
 }
 
@@ -435,7 +464,7 @@ func (s *OrderResponse) SetItems(val []OrderItem) {
 }
 
 // SetLocale sets the value of Locale.
-func (s *OrderResponse) SetLocale(val OrderResponseLocale) {
+func (s *OrderResponse) SetLocale(val string) {
 	s.Locale = val
 }
 
@@ -476,87 +505,18 @@ func (s *OrderResponse) SetOofShard(val string) {
 
 func (*OrderResponse) orderIDGetRes() {}
 
-type OrderResponseLocale string
-
-const (
-	OrderResponseLocaleEn OrderResponseLocale = "en"
-	OrderResponseLocaleRu OrderResponseLocale = "ru"
-	OrderResponseLocaleDe OrderResponseLocale = "de"
-	OrderResponseLocaleFr OrderResponseLocale = "fr"
-	OrderResponseLocaleEs OrderResponseLocale = "es"
-	OrderResponseLocaleZh OrderResponseLocale = "zh"
-)
-
-// AllValues returns all OrderResponseLocale values.
-func (OrderResponseLocale) AllValues() []OrderResponseLocale {
-	return []OrderResponseLocale{
-		OrderResponseLocaleEn,
-		OrderResponseLocaleRu,
-		OrderResponseLocaleDe,
-		OrderResponseLocaleFr,
-		OrderResponseLocaleEs,
-		OrderResponseLocaleZh,
-	}
-}
-
-// MarshalText implements encoding.TextMarshaler.
-func (s OrderResponseLocale) MarshalText() ([]byte, error) {
-	switch s {
-	case OrderResponseLocaleEn:
-		return []byte(s), nil
-	case OrderResponseLocaleRu:
-		return []byte(s), nil
-	case OrderResponseLocaleDe:
-		return []byte(s), nil
-	case OrderResponseLocaleFr:
-		return []byte(s), nil
-	case OrderResponseLocaleEs:
-		return []byte(s), nil
-	case OrderResponseLocaleZh:
-		return []byte(s), nil
-	default:
-		return nil, errors.Errorf("invalid value: %q", s)
-	}
-}
-
-// UnmarshalText implements encoding.TextUnmarshaler.
-func (s *OrderResponseLocale) UnmarshalText(data []byte) error {
-	switch OrderResponseLocale(data) {
-	case OrderResponseLocaleEn:
-		*s = OrderResponseLocaleEn
-		return nil
-	case OrderResponseLocaleRu:
-		*s = OrderResponseLocaleRu
-		return nil
-	case OrderResponseLocaleDe:
-		*s = OrderResponseLocaleDe
-		return nil
-	case OrderResponseLocaleFr:
-		*s = OrderResponseLocaleFr
-		return nil
-	case OrderResponseLocaleEs:
-		*s = OrderResponseLocaleEs
-		return nil
-	case OrderResponseLocaleZh:
-		*s = OrderResponseLocaleZh
-		return nil
-	default:
-		return errors.Errorf("invalid value: %q", data)
-	}
-}
-
 // Ref: #/components/schemas/Payment
 type Payment struct {
-	Transaction  string          `json:"transaction"`
-	RequestID    OptString       `json:"request_id"`
-	Currency     PaymentCurrency `json:"currency"`
-	Provider     string          `json:"provider"`
-	Amount       int             `json:"amount"`
-	PaymentDt    int64           `json:"payment_dt"`
-	Bank         string          `json:"bank"`
-	DeliveryCost int             `json:"delivery_cost"`
-	GoodsTotal   int             `json:"goods_total"`
-	CustomFee    int             `json:"custom_fee"`
+	Transaction  string    `json:"transaction"`
+	RequestID    OptString `json:"request_id"`
+	Currency     string    `json:"currency"`
+	Provider     string    `json:"provider"`
+	Amount       int       `json:"amount"`
+	PaymentDt    int64     `json:"payment_dt"`
+	Bank         string    `json:"bank"`
+	DeliveryCost int       `json:"delivery_cost"`
+	GoodsTotal   int       `json:"goods_total"`
+	CustomFee    int       `json:"custom_fee"`
 }
 
 // GetTransaction returns the value of Transaction.
@@ -570,7 +530,7 @@ func (s *Payment) GetRequestID() OptString {
 }
 
 // GetCurrency returns the value of Currency.
-func (s *Payment) GetCurrency() PaymentCurrency {
+func (s *Payment) GetCurrency() string {
 	return s.Currency
 }
 
@@ -620,7 +580,7 @@ func (s *Payment) SetRequestID(val OptString) {
 }
 
 // SetCurrency sets the value of Currency.
-func (s *Payment) SetCurrency(val PaymentCurrency) {
+func (s *Payment) SetCurrency(val string) {
 	s.Currency = val
 }
 
@@ -657,66 +617,4 @@ func (s *Payment) SetGoodsTotal(val int) {
 // SetCustomFee sets the value of CustomFee.
 func (s *Payment) SetCustomFee(val int) {
 	s.CustomFee = val
-}
-
-type PaymentCurrency string
-
-const (
-	PaymentCurrencyUSD PaymentCurrency = "USD"
-	PaymentCurrencyEUR PaymentCurrency = "EUR"
-	PaymentCurrencyRUB PaymentCurrency = "RUB"
-	PaymentCurrencyGBP PaymentCurrency = "GBP"
-	PaymentCurrencyJPY PaymentCurrency = "JPY"
-)
-
-// AllValues returns all PaymentCurrency values.
-func (PaymentCurrency) AllValues() []PaymentCurrency {
-	return []PaymentCurrency{
-		PaymentCurrencyUSD,
-		PaymentCurrencyEUR,
-		PaymentCurrencyRUB,
-		PaymentCurrencyGBP,
-		PaymentCurrencyJPY,
-	}
-}
-
-// MarshalText implements encoding.TextMarshaler.
-func (s PaymentCurrency) MarshalText() ([]byte, error) {
-	switch s {
-	case PaymentCurrencyUSD:
-		return []byte(s), nil
-	case PaymentCurrencyEUR:
-		return []byte(s), nil
-	case PaymentCurrencyRUB:
-		return []byte(s), nil
-	case PaymentCurrencyGBP:
-		return []byte(s), nil
-	case PaymentCurrencyJPY:
-		return []byte(s), nil
-	default:
-		return nil, errors.Errorf("invalid value: %q", s)
-	}
-}
-
-// UnmarshalText implements encoding.TextUnmarshaler.
-func (s *PaymentCurrency) UnmarshalText(data []byte) error {
-	switch PaymentCurrency(data) {
-	case PaymentCurrencyUSD:
-		*s = PaymentCurrencyUSD
-		return nil
-	case PaymentCurrencyEUR:
-		*s = PaymentCurrencyEUR
-		return nil
-	case PaymentCurrencyRUB:
-		*s = PaymentCurrencyRUB
-		return nil
-	case PaymentCurrencyGBP:
-		*s = PaymentCurrencyGBP
-		return nil
-	case PaymentCurrencyJPY:
-		*s = PaymentCurrencyJPY
-		return nil
-	default:
-		return errors.Errorf("invalid value: %q", data)
-	}
 }

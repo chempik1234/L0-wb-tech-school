@@ -840,7 +840,7 @@ func (s *OrderResponse) encodeFields(e *jx.Encoder) {
 	}
 	{
 		e.FieldStart("locale")
-		s.Locale.Encode(e)
+		e.Str(s.Locale)
 	}
 	{
 		if s.InternalSignature.Set {
@@ -977,7 +977,9 @@ func (s *OrderResponse) Decode(d *jx.Decoder) error {
 		case "locale":
 			requiredBitSet[0] |= 1 << 6
 			if err := func() error {
-				if err := s.Locale.Decode(d); err != nil {
+				v, err := d.Str()
+				s.Locale = string(v)
+				if err != nil {
 					return err
 				}
 				return nil
@@ -1123,54 +1125,6 @@ func (s *OrderResponse) UnmarshalJSON(data []byte) error {
 	return s.Decode(d)
 }
 
-// Encode encodes OrderResponseLocale as json.
-func (s OrderResponseLocale) Encode(e *jx.Encoder) {
-	e.Str(string(s))
-}
-
-// Decode decodes OrderResponseLocale from json.
-func (s *OrderResponseLocale) Decode(d *jx.Decoder) error {
-	if s == nil {
-		return errors.New("invalid: unable to decode OrderResponseLocale to nil")
-	}
-	v, err := d.StrBytes()
-	if err != nil {
-		return err
-	}
-	// Try to use constant string.
-	switch OrderResponseLocale(v) {
-	case OrderResponseLocaleEn:
-		*s = OrderResponseLocaleEn
-	case OrderResponseLocaleRu:
-		*s = OrderResponseLocaleRu
-	case OrderResponseLocaleDe:
-		*s = OrderResponseLocaleDe
-	case OrderResponseLocaleFr:
-		*s = OrderResponseLocaleFr
-	case OrderResponseLocaleEs:
-		*s = OrderResponseLocaleEs
-	case OrderResponseLocaleZh:
-		*s = OrderResponseLocaleZh
-	default:
-		*s = OrderResponseLocale(v)
-	}
-
-	return nil
-}
-
-// MarshalJSON implements stdjson.Marshaler.
-func (s OrderResponseLocale) MarshalJSON() ([]byte, error) {
-	e := jx.Encoder{}
-	s.Encode(&e)
-	return e.Bytes(), nil
-}
-
-// UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *OrderResponseLocale) UnmarshalJSON(data []byte) error {
-	d := jx.DecodeBytes(data)
-	return s.Decode(d)
-}
-
 // Encode implements json.Marshaler.
 func (s *Payment) Encode(e *jx.Encoder) {
 	e.ObjStart()
@@ -1192,7 +1146,7 @@ func (s *Payment) encodeFields(e *jx.Encoder) {
 	}
 	{
 		e.FieldStart("currency")
-		s.Currency.Encode(e)
+		e.Str(s.Currency)
 	}
 	{
 		e.FieldStart("provider")
@@ -1271,7 +1225,9 @@ func (s *Payment) Decode(d *jx.Decoder) error {
 		case "currency":
 			requiredBitSet[0] |= 1 << 2
 			if err := func() error {
-				if err := s.Currency.Decode(d); err != nil {
+				v, err := d.Str()
+				s.Currency = string(v)
+				if err != nil {
 					return err
 				}
 				return nil
@@ -1415,52 +1371,6 @@ func (s *Payment) MarshalJSON() ([]byte, error) {
 
 // UnmarshalJSON implements stdjson.Unmarshaler.
 func (s *Payment) UnmarshalJSON(data []byte) error {
-	d := jx.DecodeBytes(data)
-	return s.Decode(d)
-}
-
-// Encode encodes PaymentCurrency as json.
-func (s PaymentCurrency) Encode(e *jx.Encoder) {
-	e.Str(string(s))
-}
-
-// Decode decodes PaymentCurrency from json.
-func (s *PaymentCurrency) Decode(d *jx.Decoder) error {
-	if s == nil {
-		return errors.New("invalid: unable to decode PaymentCurrency to nil")
-	}
-	v, err := d.StrBytes()
-	if err != nil {
-		return err
-	}
-	// Try to use constant string.
-	switch PaymentCurrency(v) {
-	case PaymentCurrencyUSD:
-		*s = PaymentCurrencyUSD
-	case PaymentCurrencyEUR:
-		*s = PaymentCurrencyEUR
-	case PaymentCurrencyRUB:
-		*s = PaymentCurrencyRUB
-	case PaymentCurrencyGBP:
-		*s = PaymentCurrencyGBP
-	case PaymentCurrencyJPY:
-		*s = PaymentCurrencyJPY
-	default:
-		*s = PaymentCurrency(v)
-	}
-
-	return nil
-}
-
-// MarshalJSON implements stdjson.Marshaler.
-func (s PaymentCurrency) MarshalJSON() ([]byte, error) {
-	e := jx.Encoder{}
-	s.Encode(&e)
-	return e.Bytes(), nil
-}
-
-// UnmarshalJSON implements stdjson.Unmarshaler.
-func (s *PaymentCurrency) UnmarshalJSON(data []byte) error {
 	d := jx.DecodeBytes(data)
 	return s.Decode(d)
 }

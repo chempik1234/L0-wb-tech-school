@@ -2,19 +2,23 @@ package service
 
 import (
 	"context"
-	"order_service/internal/api"
+	"order_service/internal/models"
+	"order_service/internal/ports"
 )
 
 type OrderService struct {
+	storage ports.OrderStorage
 }
 
-func NewOrderService() *OrderService {
-	return new(OrderService)
-}
-
-func (s *OrderService) OrderIDGet(ctx context.Context, params api.OrderIDGetParams) (api.OrderIDGetRes, error) {
-	response := api.ErrorResponse{
-		Message: "yees!",
+func NewOrderService(storage ports.OrderStorage) *OrderService {
+	return &OrderService{
+		storage: storage,
 	}
-	return &response, nil
+}
+
+func (s *OrderService) OrderIDGet(ctx context.Context, orderUid string) (models.Order, error) {
+	// call the storage if not found in cache
+	result, err := s.storage.GetOrderById(ctx, orderUid)
+
+	return result, err
 }

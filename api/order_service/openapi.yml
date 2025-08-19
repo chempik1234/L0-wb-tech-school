@@ -79,7 +79,6 @@ components:
             $ref: '#/components/schemas/OrderItem'
         locale:
           type: string
-          enum: [en, ru, de, fr, es, zh]
           example: "en"
         internal_signature:
           type: string
@@ -165,7 +164,6 @@ components:
           example: ""
         currency:
           type: string
-          enum: [USD, EUR, RUB, GBP, JPY]
           example: "USD"
         provider:
           type: string

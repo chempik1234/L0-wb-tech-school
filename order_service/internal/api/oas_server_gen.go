@@ -14,6 +14,10 @@ type Handler interface {
 	//
 	// GET /order/{id}
 	OrderIDGet(ctx context.Context, params OrderIDGetParams) (OrderIDGetRes, error)
+	// NewError creates *ErrorResponseStatusCode from error returned by handler.
+	//
+	// Used for common default response.
+	NewError(ctx context.Context, err error) *ErrorResponseStatusCode
 }
 
 // Server implements http server based on OpenAPI v3 specification and

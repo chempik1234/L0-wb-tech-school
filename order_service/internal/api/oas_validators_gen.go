@@ -91,17 +91,6 @@ func (s *OrderResponse) Validate() error {
 		})
 	}
 	if err := func() error {
-		if err := s.Payment.Validate(); err != nil {
-			return err
-		}
-		return nil
-	}(); err != nil {
-		failures = append(failures, validate.FieldError{
-			Name:  "payment",
-			Error: err,
-		})
-	}
-	if err := func() error {
 		if s.Items == nil {
 			return errors.New("nil is invalid value")
 		}
@@ -129,78 +118,8 @@ func (s *OrderResponse) Validate() error {
 			Error: err,
 		})
 	}
-	if err := func() error {
-		if err := s.Locale.Validate(); err != nil {
-			return err
-		}
-		return nil
-	}(); err != nil {
-		failures = append(failures, validate.FieldError{
-			Name:  "locale",
-			Error: err,
-		})
-	}
 	if len(failures) > 0 {
 		return &validate.Error{Fields: failures}
 	}
 	return nil
-}
-
-func (s OrderResponseLocale) Validate() error {
-	switch s {
-	case "en":
-		return nil
-	case "ru":
-		return nil
-	case "de":
-		return nil
-	case "fr":
-		return nil
-	case "es":
-		return nil
-	case "zh":
-		return nil
-	default:
-		return errors.Errorf("invalid value: %v", s)
-	}
-}
-
-func (s *Payment) Validate() error {
-	if s == nil {
-		return validate.ErrNilPointer
-	}
-
-	var failures []validate.FieldError
-	if err := func() error {
-		if err := s.Currency.Validate(); err != nil {
-			return err
-		}
-		return nil
-	}(); err != nil {
-		failures = append(failures, validate.FieldError{
-			Name:  "currency",
-			Error: err,
-		})
-	}
-	if len(failures) > 0 {
-		return &validate.Error{Fields: failures}
-	}
-	return nil
-}
-
-func (s PaymentCurrency) Validate() error {
-	switch s {
-	case "USD":
-		return nil
-	case "EUR":
-		return nil
-	case "RUB":
-		return nil
-	case "GBP":
-		return nil
-	case "JPY":
-		return nil
-	default:
-		return errors.Errorf("invalid value: %v", s)
-	}
 }

@@ -58,7 +58,7 @@ func NewWriter(ctx context.Context, cfg Config, topic string) *kafka.Writer {
 }
 
 func CreateTopicIfNotExists(cfg Config, topic string, numPartitions, replicationFactor int) error {
-	if len(topic) == 0 {
+	if topic == "" {
 		return errors.New("topic name mustn't be empty")
 	}
 

@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"go.uber.org/zap"
 	"net/http"
+	"order_service/internal/adapters/storage"
 	"order_service/internal/api"
 	"order_service/internal/config"
 	"order_service/internal/runner"
@@ -54,11 +55,15 @@ func main() {
 		kafkaCfg, serviceCfg.KafkaTopic, serviceCfg.KafkaGroupID)
 	//endregion
 
-	orderService := service.NewOrderService()
+	//region service
+	storageAdapter := storage.NewOrdersStoragePostgres(pool)
+	orderService := service.NewOrderService(storageAdapter)
+	orderServiceHandler := service.NewOrderServiceAPIWrapper(orderService)
+	//endregion
 
 	// create handler aka mux from ogen-generated function
 	// using the service
-	apiHandler, err := api.NewServer(orderService)
+	apiHandler, err := api.NewServer(orderServiceHandler)
 	if err != nil {
 		logger.GetLoggerFromCtx(ctx).Fatal(ctx, "failed to create http server", zap.Error(err))
 	}
