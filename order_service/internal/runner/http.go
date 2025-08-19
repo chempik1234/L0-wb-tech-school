@@ -12,7 +12,7 @@ import (
 func RunHTTP(ctx context.Context, srv *http.Server) {
 	logger.GetLoggerFromCtx(ctx).Info(ctx, fmt.Sprintf("listening at %s", srv.Addr))
 	if err := srv.ListenAndServe(); err != nil {
-		logger.GetLoggerFromCtx(ctx).Info(ctx, "failed to serve gateway", zap.Error(err))
+		logger.GetLoggerFromCtx(ctx).Error(ctx, "failed to serve gateway", zap.Error(err))
 	}
 }
 

@@ -22,3 +22,7 @@ func (s *OrderService) OrderIDGet(ctx context.Context, orderUid string) (models.
 
 	return result, err
 }
+
+func (s *OrderService) SaveOrder(ctx context.Context, order models.Order) error {
+	return s.storage.SaveOrder(ctx, order)
+}

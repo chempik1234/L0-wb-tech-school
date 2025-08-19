@@ -5,9 +5,11 @@ import (
 	"fmt"
 	"go.uber.org/zap"
 	"net/http"
+	"order_service/internal/adapters/receiver"
 	"order_service/internal/adapters/storage"
 	"order_service/internal/api"
 	"order_service/internal/config"
+	"order_service/internal/handlers"
 	"order_service/internal/runner"
 	"order_service/internal/service"
 	"order_service/pkg/kafka"
@@ -19,6 +21,7 @@ import (
 )
 
 func main() {
+	//region ctx
 	ctx := context.Background()
 
 	// use OS signals for graceful shutdown
@@ -28,9 +31,11 @@ func main() {
 	// put a new zap logger into context
 	// from now on, all packages PURELY HOPE that the logger is there (otherwise the service explodes)
 	ctx, _ = logger.New(ctx)
+	//endregion
 
-	// read config from whatever (.env)
-	cfg, err := config.TryRead()
+	//region configs
+
+	cfg, err := config.TryRead() // read config from whatever (.env)
 	if err != nil {
 		logger.GetLoggerFromCtx(ctx).Fatal(ctx, "failed to load config", zap.Error(err))
 	}
@@ -38,6 +43,7 @@ func main() {
 	pgCfg := cfg.Postgres
 	kafkaCfg := cfg.Kafka
 	serviceCfg := cfg.OrderService
+	//endregion
 
 	//region connections
 
@@ -51,14 +57,17 @@ func main() {
 	if err != nil {
 		logger.GetLoggerFromCtx(ctx).Fatal(ctx, "failed to create topic kafka", zap.Error(err))
 	}
-	kafkaConsumer := kafka.NewReader(ctx,
-		kafkaCfg, serviceCfg.KafkaTopic, serviceCfg.KafkaGroupID)
+	kafkaConsumer := kafka.NewReader(ctx, kafkaCfg, serviceCfg.KafkaTopic, serviceCfg.KafkaGroupID)
 	//endregion
 
 	//region service
 	storageAdapter := storage.NewOrdersStoragePostgres(pool)
+	receiverAdapter := receiver.NewKafkaReceiver(kafkaConsumer)
+
 	orderService := service.NewOrderService(storageAdapter)
-	orderServiceHandler := service.NewOrderServiceAPIWrapper(orderService)
+	orderServiceHandler := handlers.NewOrderServiceHttpHandler(orderService)
+
+	kafkaOrderReceiverService := service.NewOrderReceiverService(receiverAdapter, orderService.SaveOrder)
 	//endregion
 
 	// create handler aka mux from ogen-generated function
@@ -74,9 +83,11 @@ func main() {
 		Handler: apiHandler,
 	}
 	go runner.RunHTTP(ctx, httpServer)
+	go runner.RunOrderReceiver(ctx, kafkaOrderReceiverService)
 
 	<-ctx.Done()
 
+	//region shutdown
 	var shutdownWg sync.WaitGroup
 	shutdownWg.Add(3)
 
@@ -93,6 +104,7 @@ func main() {
 	}()
 	go func() {
 		defer shutdownWg.Done()
+		runner.ShutdownOrderReceiver(ctx, kafkaOrderReceiverService)
 		err = kafkaConsumer.Close()
 		if err != nil {
 			logger.GetLoggerFromCtx(ctx).Error(ctx, "error while closing kafka consumer", zap.Error(err))
@@ -101,4 +113,5 @@ func main() {
 	}()
 
 	shutdownWg.Wait()
+	//endregion
 }

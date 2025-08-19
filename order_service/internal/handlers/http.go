@@ -1,4 +1,4 @@
-package service
+package handlers
 
 import (
 	"context"
@@ -6,19 +6,21 @@ import (
 	"fmt"
 	"order_service/internal/api"
 	"order_service/internal/custom_errors"
+	"order_service/internal/service"
 )
 
-type OrderServiceAPIWrapper struct {
-	service *OrderService
+// OrderServiceHttpHandler is a wrapper around service.OrderService that implements generated openapi handler
+type OrderServiceHttpHandler struct {
+	service *service.OrderService
 }
 
-func NewOrderServiceAPIWrapper(service *OrderService) *OrderServiceAPIWrapper {
-	return &OrderServiceAPIWrapper{
+func NewOrderServiceHttpHandler(service *service.OrderService) *OrderServiceHttpHandler {
+	return &OrderServiceHttpHandler{
 		service: service,
 	}
 }
 
-func (s *OrderServiceAPIWrapper) OrderIDGet(ctx context.Context, params api.OrderIDGetParams) (api.OrderIDGetRes, error) {
+func (s *OrderServiceHttpHandler) OrderIDGet(ctx context.Context, params api.OrderIDGetParams) (api.OrderIDGetRes, error) {
 	// query service
 	result, err := s.service.OrderIDGet(ctx, params.ID)
 
@@ -79,7 +81,7 @@ func (s *OrderServiceAPIWrapper) OrderIDGet(ctx context.Context, params api.Orde
 	return &response, nil
 }
 
-func (s *OrderServiceAPIWrapper) NewError(ctx context.Context, err error) *api.ErrorResponseStatusCode {
+func (s *OrderServiceHttpHandler) NewError(ctx context.Context, err error) *api.ErrorResponseStatusCode {
 	// handle custom errors whose status codes we know
 	if errors.Is(err, custom_errors.ErrOrderNotFound) {
 		return &api.ErrorResponseStatusCode{
