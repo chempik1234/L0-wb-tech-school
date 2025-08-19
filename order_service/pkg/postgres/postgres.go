@@ -10,15 +10,16 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
+// Config from postgres package is supposed to be used with an env-prefix of "POSTGRES_"
 type Config struct {
-	Host     string `yaml:"POSTGRES_HOST" env:"POSTGRES_HOST" env-default:"localhost"`
-	Port     uint16 `yaml:"POSTGRES_PORT" env:"POSTGRES_PORT" env-default:"5432"`
-	Username string `yaml:"POSTGRES_USER" env:"POSTGRES_USER" env-default:"postgres"`
-	Password string `yaml:"POSTGRES_PASSWORD" env:"POSTGRES_PASSWORD" env-default:"1234"`
-	Database string `yaml:"POSTGRES_DB" env:"POSTGRES_DB" env-default:"postgres"`
+	Host     string `yaml:"host" env:"HOST" env-default:"localhost"`
+	Port     uint16 `yaml:"port" env:"PORT" env-default:"5432"`
+	Username string `yaml:"user" env:"USER" env-default:"postgres"`
+	Password string `yaml:"password" env:"PASSWORD" env-default:"1234"`
+	Database string `yaml:"db" env:"DB" env-default:"postgres"`
 
-	MaxConns int32 `yaml:"POSTGRES_MAX_CONN" env:"POSTGRES_MAX_CONN" env-default:"10"`
-	MinConns int32 `yaml:"POSTGRES_MIN_CONN" env:"POSTGRES_MIN_CONN" env-default:"5"`
+	MaxConns int32 `yaml:"max_conn" env:"MAX_CONN" env-default:"10"`
+	MinConns int32 `yaml:"min_conn" env:"MIN_CONN" env-default:"5"`
 }
 
 func New(ctx context.Context, config Config) (*pgxpool.Pool, error) {
@@ -41,7 +42,7 @@ func New(ctx context.Context, config Config) (*pgxpool.Pool, error) {
 
 	conn, err := pgxpool.New(ctx, connString)
 	if err != nil {
-		return nil, fmt.Errorf("unable to connect to postgres: %v", err)
+		return nil, fmt.Errorf("unable to connect to postgres by link %s: %v", connString, err)
 	}
 
 	m, err := migrate.New(
@@ -49,7 +50,7 @@ func New(ctx context.Context, config Config) (*pgxpool.Pool, error) {
 		connStringShort,
 	)
 	if err != nil {
-		return nil, fmt.Errorf("unable to create migrations table: %v", err)
+		return nil, fmt.Errorf("unable to create migrations table by link %s: %v", connStringShort, err)
 	}
 	if err = m.Up(); err != nil && !errors.Is(err, migrate.ErrNoChange) {
 		return nil, fmt.Errorf("unable to apply migrations: %v", err)

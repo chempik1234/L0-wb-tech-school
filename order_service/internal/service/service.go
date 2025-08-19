@@ -13,6 +13,8 @@ func NewOrderService() *OrderService {
 }
 
 func (s *OrderService) OrderIDGet(ctx context.Context, params api.OrderIDGetParams) (api.OrderIDGetRes, error) {
-	response := api.OrderResponse{}
+	response := api.ErrorResponse{
+		Message: "yees!",
+	}
 	return &response, nil
 }

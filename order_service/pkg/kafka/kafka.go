@@ -3,6 +3,7 @@ package kafka
 import (
 	"context"
 	"fmt"
+	"github.com/go-faster/errors"
 	"github.com/segmentio/kafka-go"
 	"go.uber.org/zap"
 	"order_service/pkg/logger"
@@ -57,6 +58,10 @@ func NewWriter(ctx context.Context, cfg Config, topic string) *kafka.Writer {
 }
 
 func CreateTopicIfNotExists(cfg Config, topic string, numPartitions, replicationFactor int) error {
+	if len(topic) == 0 {
+		return errors.New("topic name mustn't be empty")
+	}
+
 	conn, err := kafka.Dial("tcp", cfg.Brokers[0])
 	if err != nil {
 		return err
@@ -83,9 +88,9 @@ func CreateTopicIfNotExists(cfg Config, topic string, numPartitions, replication
 	})
 }
 
-func CreateTopicWithRetry(cfg Config, topic string, numPartitions, replicationFactor int) error {
+func CreateTopicWithRetry(cfg Config, topic string, numPartitions, replicationFactor int, retries int) error {
 	var err error
-	for i := 0; i < 10; i++ {
+	for i := 0; i < retries; i++ {
 		err = CreateTopicIfNotExists(cfg, topic, numPartitions, replicationFactor)
 		if err == nil {
 			return nil
