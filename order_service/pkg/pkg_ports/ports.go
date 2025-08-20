@@ -25,5 +25,5 @@ type Cache[Key comparable, Value any] interface {
 type Receiver[ValueType, MessageType any] interface {
 	Consume(ctx context.Context) (ValueType, MessageType, error)
 	OnSuccess(ctx context.Context, givenMessage MessageType) error
-	OnFail(ctx context.Context, givenMessage MessageType) error
+	OnFail(ctx context.Context, shouldRetry bool, givenMessage MessageType) error
 }

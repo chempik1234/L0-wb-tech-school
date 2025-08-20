@@ -43,6 +43,12 @@ out:
 			err = validators.ValidateOrder(order)
 			if err != nil {
 				logger.GetLoggerFromCtx(ctx).Warn(ctx, "invalid order", zap.Error(err))
+
+				// message is incorrect, no retries
+				err = s.receiver.OnFail(ctx, false, msg)
+				if err != nil {
+					logger.GetLoggerFromCtx(ctx).Error(ctx, "error while committing invalid message failure", zap.Error(err))
+				}
 				break
 			}
 
@@ -51,9 +57,11 @@ out:
 				err = s.ProcessOrder(ctx, order)
 				if err != nil {
 					logger.GetLoggerFromCtx(ctx).Error(ctx, "error while processing order", zap.Error(err))
-					err = s.receiver.OnFail(ctx, msg)
+
+					// send message to retry because of unknown DB errors
+					err = s.receiver.OnFail(ctx, true, msg)
 					if err != nil {
-						logger.GetLoggerFromCtx(ctx).Error(ctx, "error while committing message failure", zap.Error(err))
+						logger.GetLoggerFromCtx(ctx).Error(ctx, "error while committing valid message failure", zap.Error(err))
 					}
 				} else {
 					err = s.receiver.OnSuccess(ctx, msg)

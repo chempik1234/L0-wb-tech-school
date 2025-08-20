@@ -3,7 +3,6 @@ package main
 import (
 	"context"
 	"fmt"
-	kafka2 "github.com/segmentio/kafka-go"
 	"go.uber.org/zap"
 	"net/http"
 	"order_service/internal/api"
@@ -21,6 +20,7 @@ import (
 	"os"
 	"os/signal"
 	"sync"
+	"time"
 )
 
 func main() {
@@ -65,13 +65,19 @@ func main() {
 
 	//region service
 	storageAdapter := storage.NewOrdersStoragePostgres(pool)
-	receiverAdapter := receiver.NewKafkaReceiver[models.Order](kafkaConsumer)
+
+	receiverAdapter := receiver.NewKafkaReceiver[models.Order](
+		kafkaConsumer,
+		serviceCfg.MaxSaveRetriesAmount,
+		serviceCfg.MaxSaveRetriesCapacity,
+		time.Duration(serviceCfg.SaveBackoffSeconds)*time.Second,
+	)
 	cacheAdapter := cache.NewOrderCacheAdapterInMemoryLRU(serviceCfg.CacheCapacity)
 
 	orderService := service.NewOrderService(storageAdapter, cacheAdapter)
 	orderServiceHandler := handlers.NewOrderServiceHttpHandler(orderService)
 
-	kafkaOrderReceiverService := service.NewOrderReceiverService[kafka2.Message](receiverAdapter, orderService.SaveOrder)
+	kafkaOrderReceiverService := service.NewOrderReceiverService[*receiver.KafkaMessage[models.Order]](receiverAdapter, orderService.SaveOrder)
 	//endregion
 
 	// create handler aka mux from ogen-generated function
