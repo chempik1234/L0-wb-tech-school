@@ -3,6 +3,7 @@ package ports
 import (
 	"context"
 	"order_service/internal/models"
+	"order_service/pkg/pkg_ports"
 )
 
 // OrderStorage port describes a persistent orders storage, e.g. postgres
@@ -13,9 +14,10 @@ type OrderStorage interface {
 
 // OrderReceiver port describes a message queue consumer that gets orders for save, e.g. kafka
 //
-// it has an ability to be run and stopped (Run, process orders, GracefulStop)
-type OrderReceiver[T any] interface {
-	Consume(ctx context.Context) (models.Order, T, error)
-	OnSuccess(ctx context.Context, givenMessage T) error
-	OnFail(ctx context.Context, givenMessage T) error
-}
+// values are read with Consume method and must be commited with either OnSuccess or OnFail
+type OrderReceiver[MessageType any] pkg_ports.Receiver[models.Order, MessageType]
+
+// OrderCache describes a cache that might be
+// implemented with different storages (e.g. in-memory, redis)
+// and mechanisms (e.g. N last saved)
+type OrderCache pkg_ports.Cache[string, models.Order]

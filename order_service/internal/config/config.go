@@ -9,9 +9,10 @@ import (
 
 // OrderServiceConfig is named after the microservice, not the service struct!
 type OrderServiceConfig struct {
-	KafkaTopic   string `yaml:"kafka_topic" env:"KAFKA_TOPIC"`
-	KafkaGroupID string `yaml:"kafka_group_id" env:"KAFKA_GROUP_ID"`
-	HTTPPort     int    `yaml:"http_port" env:"HTTP_PORT"`
+	KafkaTopic    string `yaml:"kafka_topic" env:"KAFKA_TOPIC"`
+	KafkaGroupID  string `yaml:"kafka_group_id" env:"KAFKA_GROUP_ID"`
+	HTTPPort      int    `yaml:"http_port" env:"HTTP_PORT"`
+	CacheCapacity int    `yaml:"cache_capacity" env:"CACHE_CAPACITY"`
 }
 
 type Config struct {

@@ -11,15 +11,15 @@ import (
 
 type ProcessOrderFunction func(context.Context, models.Order) error
 
-type OrderReceiverService[T any] struct {
-	receiver             ports.OrderReceiver[T]
+type OrderReceiverService[MessageType any] struct {
+	receiver             ports.OrderReceiver[MessageType]
 	processOrderFunction ProcessOrderFunction
 
 	done chan struct{}
 }
 
-func NewOrderReceiverService[T any](receiver ports.OrderReceiver[T], processOrderFunction ProcessOrderFunction) *OrderReceiverService[T] {
-	return &OrderReceiverService[T]{receiver: receiver, processOrderFunction: processOrderFunction, done: make(chan struct{})}
+func NewOrderReceiverService[MessageType any](receiver ports.OrderReceiver[MessageType], processOrderFunction ProcessOrderFunction) *OrderReceiverService[MessageType] {
+	return &OrderReceiverService[MessageType]{receiver: receiver, processOrderFunction: processOrderFunction, done: make(chan struct{})}
 }
 
 func (s *OrderReceiverService[_]) StartReceivingOrders(ctx context.Context) error {
