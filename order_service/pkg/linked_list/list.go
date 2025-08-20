@@ -69,28 +69,31 @@ func (l *LinkedList[ValueType]) InsertLast(data ValueType) error {
 
 //region remove
 
-func (l *LinkedList[ValueType]) RemoveAt(index int) {
+func (l *LinkedList[ValueType]) RemoveAt(index int) error {
 	l.mu.Lock()
 	defer l.mu.Unlock()
-	l.removeNodeAt(index)
+	return l.removeNodeAt(index)
 }
 
-func (l *LinkedList[ValueType]) RemoveFirst() {
+func (l *LinkedList[ValueType]) RemoveFirst() error {
 	l.mu.Lock()
 	defer l.mu.Unlock()
-	l.removeFirstNode()
+	return l.removeFirstNode()
 }
 
-func (l *LinkedList[ValueType]) RemoveLast() {
+func (l *LinkedList[ValueType]) RemoveLast() error {
 	l.mu.Lock()
 	defer l.mu.Unlock()
-	l.removeNodeAt(l.Len() - 1)
+	return l.removeNodeAt(l.Len() - 1)
 }
 
-func (l *LinkedList[ValueType]) removeNodeAt(index int) {
+func (l *LinkedList[ValueType]) removeNodeAt(index int) error {
 	if index == 0 {
-		l.removeFirstNode()
-		return
+		return l.removeFirstNode()
+	}
+
+	if index < 0 || index >= l.Len() {
+		return InvalidIndexError
 	}
 
 	var prevElem *Node[ValueType]
@@ -101,10 +104,18 @@ func (l *LinkedList[ValueType]) removeNodeAt(index int) {
 	}
 
 	prevElem.next = nil
+	l.length--
+	return nil
 }
 
-func (l *LinkedList[ValueType]) removeFirstNode() {
-	l.head = l.head.next
+func (l *LinkedList[ValueType]) removeFirstNode() error {
+	if l.Len() > 0 {
+		l.head = l.head.next
+		l.length--
+	} else {
+		return InvalidIndexError
+	}
+	return nil
 }
 
 //endregion

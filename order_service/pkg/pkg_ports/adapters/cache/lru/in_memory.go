@@ -72,7 +72,10 @@ func (c *CacheLRUInMemory[Key, Value]) Set(ctx context.Context, key Key, value V
 		}
 
 		delete(c.data, keyToDelete)
-		c.keysList.RemoveLast()
+		err = c.keysList.RemoveLast()
+		if err != nil {
+			return fmt.Errorf("error while removing last key index: %w", err)
+		}
 	}
 
 	err := c.keysList.Insert(key, 0)
