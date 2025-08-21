@@ -9,10 +9,12 @@ import (
 
 // OrderServiceConfig is named after the microservice, not the service struct!
 type OrderServiceConfig struct {
-	KafkaTopic    string `yaml:"kafka_topic" env:"KAFKA_TOPIC"`
-	KafkaGroupID  string `yaml:"kafka_group_id" env:"KAFKA_GROUP_ID"`
-	HTTPPort      int    `yaml:"http_port" env:"HTTP_PORT"`
-	CacheCapacity int    `yaml:"cache_capacity" env:"CACHE_CAPACITY"`
+	KafkaTopic   string `yaml:"kafka_topic" env:"KAFKA_TOPIC"`
+	KafkaGroupID string `yaml:"kafka_group_id" env:"KAFKA_GROUP_ID"`
+	HTTPPort     int    `yaml:"http_port" env:"HTTP_PORT"`
+
+	CacheCapacity              int `yaml:"cache_capacity" env:"CACHE_CAPACITY"`
+	CachedOrdersOnStartupCount int `yaml:"CACHED_ORDERS_ON_STARTUP_LIMIT" env:"CACHED_ORDERS_ON_STARTUP_LIMIT"`
 
 	MaxSaveRetriesAmount   int `yaml:"max_save_retries_amount" env:"MAX_SAVE_RETRIES_AMOUNT"`
 	MaxSaveRetriesCapacity int `yaml:"max_save_retries_capacity" env:"MAX_SAVE_RETRIES_CAPACITY"`

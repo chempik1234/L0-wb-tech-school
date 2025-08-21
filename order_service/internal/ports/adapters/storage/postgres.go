@@ -8,6 +8,7 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
+	"golang.org/x/sync/errgroup"
 	"order_service/internal/custom_errors"
 	"order_service/internal/models"
 	"strings"
@@ -88,7 +89,7 @@ func (o *OrdersStoragePostgres) getOrderByIdBase(ctx context.Context, orderId st
 		PlaceholderFormat(squirrel.Dollar).
 		ToSql()
 	if err != nil {
-		return models.Order{}, fmt.Errorf("Couldn't build and SQL query: %v", err)
+		return models.Order{}, fmt.Errorf("couldn't build and SQL query: %v", err)
 	}
 
 	var order models.Order
@@ -124,6 +125,71 @@ func (o *OrdersStoragePostgres) getOrderByIdBase(ctx context.Context, orderId st
 	return order, nil
 }
 
+// getLastOrdersBase makes a long SELECT query to retrieve models.Order list, SORT BY created_at ASC
+//
+// it includes Payment and Delivery fields
+//
+// call getOrderItemsById to get items for each of these
+func (o *OrdersStoragePostgres) getLastOrdersBase(ctx context.Context, limit int) ([]models.Order, error) {
+	// build select query
+	sql, args, err := squirrel.Select(
+		// order fields
+		"o.order_uid", "o.track_number", "o.entry", "o.locale", "o.internal_signature",
+		"o.customer_id", "o.delivery_service", "o.shardkey", "o.sm_id", "o.date_created",
+		"o.oof_shard", "o.created_at", "o.updated_at",
+		// delivery fields
+		"d.order_id", "d.name", "d.phone", "d.zip", "d.city", "d.address", "d.region", "d.email",
+		// payment fields
+		"p.order_id", "p.transaction", "p.request_id", "p.currency", "p.provider", "p.amount",
+		"p.payment_dt", "p.bank", "p.delivery_cost", "p.goods_total", "p.custom_fee",
+	).
+		From("order_service.orders o").
+		Join("order_service.deliveries d ON d.order_id = o.order_uid").
+		Join("order_service.payments p ON p.order_id = o.order_uid").
+		Join("order_service.order_items i ON i.order_id = o.order_uid").
+		OrderBy("o.created_at").
+		Limit(uint64(limit)).
+		PlaceholderFormat(squirrel.Dollar).
+		ToSql()
+	if err != nil {
+		return []models.Order{}, fmt.Errorf("couldn't build and SQL query: %v", err)
+	}
+
+	// perform select query
+	var rows pgx.Rows
+	rows, err = o.pool.Query(ctx, sql, args...)
+	if err != nil {
+		return nil, fmt.Errorf("couldn't query last orders: %v", err)
+	}
+	defer rows.Close()
+
+	var orders = make([]models.Order, 0)
+	for rows.Next() {
+		var order models.Order
+		err = o.pool.QueryRow(context.Background(), sql, args...).Scan(
+			// order fields
+			&order.OrderUID, &order.TrackNumber, &order.Entry, &order.Locale, &order.InternalSignature,
+			&order.CustomerId, &order.DeliveryService, &order.ShardKey, &order.SmId, &order.DateCreated,
+			&order.OofShard, &order.CreatedAt, &order.UpdatedAt,
+			// delivery fields
+			&order.Delivery.OrderId, &order.Delivery.Name, &order.Delivery.Phone,
+			&order.Delivery.Zip, &order.Delivery.City, &order.Delivery.Address,
+			&order.Delivery.Region, &order.Delivery.Email,
+			// payment fields
+			&order.Payment.OrderId, &order.Payment.Transaction, &order.Payment.RequestId,
+			&order.Payment.Currency, &order.Payment.Provider, &order.Payment.Amount,
+			&order.Payment.PaymentDt, &order.Payment.Bank, &order.Payment.DeliveryCost,
+			&order.Payment.GoodsTotal, &order.Payment.CustomFee,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("couldn't scan order: %v", err)
+		}
+		orders = append(orders, order)
+	}
+
+	return orders, nil
+}
+
 // getOrderItemsById makes a query to create a slice of models.OrderItem
 // which can be used when retrieving models.Order
 func (o *OrdersStoragePostgres) getOrderItemsById(ctx context.Context, orderId string) ([]models.OrderItem, error) {
@@ -146,7 +212,7 @@ func (o *OrdersStoragePostgres) getOrderItemsById(ctx context.Context, orderId s
 	}
 	defer rows.Close()
 
-	var items []models.OrderItem
+	var items = make([]models.OrderItem, 0)
 	for rows.Next() {
 		var item models.OrderItem
 		err = rows.Scan(
@@ -161,6 +227,42 @@ func (o *OrdersStoragePostgres) getOrderItemsById(ctx context.Context, orderId s
 	}
 
 	return items, nil
+}
+
+func (o *OrdersStoragePostgres) GetLastOrders(ctx context.Context, limit int) ([]models.Order, error) {
+	ordersList, err := o.getLastOrdersBase(ctx, limit)
+	if err != nil {
+		return nil, fmt.Errorf("couldn't get last orders: %v", err)
+	}
+
+	var eg *errgroup.Group
+	eg, ctx = errgroup.WithContext(ctx)
+
+	itemsList := make([][]models.OrderItem, len(ordersList))
+
+	for i, order := range ordersList {
+		eg.Go(func() error {
+			var items []models.OrderItem
+			var itemsErr error
+
+			items, itemsErr = o.getOrderItemsById(ctx, order.OrderUID)
+			if itemsErr != nil {
+				return fmt.Errorf("error finding items for order %s: %w", order.OrderUID, itemsErr)
+			}
+			itemsList[i] = items
+			return nil
+		})
+	}
+
+	if err = eg.Wait(); err != nil {
+		return nil, fmt.Errorf("couldn't get last orders items: %w", err)
+	}
+
+	for i, items := range itemsList {
+		ordersList[i].Items = items
+	}
+
+	return ordersList, nil
 }
 
 func (o *OrdersStoragePostgres) SaveOrder(ctx context.Context, order models.Order) error {

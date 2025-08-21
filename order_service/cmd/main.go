@@ -80,6 +80,14 @@ func main() {
 	kafkaOrderReceiverService := service.NewOrderReceiverService[*receiver.KafkaMessage[models.Order]](receiverAdapter, orderService.SaveOrder)
 	//endregion
 
+	//region setup
+	err = orderService.CacheLastOrders(ctx, serviceCfg.CachedOrdersOnStartupCount)
+	if err != nil {
+		logger.GetLoggerFromCtx(ctx).Error(ctx, "failed to cache last orders", zap.Error(err),
+			zap.Int("limit", serviceCfg.CachedOrdersOnStartupCount))
+	}
+	//endregion
+
 	// create handler aka mux from ogen-generated function
 	// using the service
 	apiHandler, err := api.NewServer(orderServiceHandler)

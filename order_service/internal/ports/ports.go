@@ -9,6 +9,7 @@ import (
 // OrderStorage port describes a persistent orders storage, e.g. postgres
 type OrderStorage interface {
 	GetOrderById(ctx context.Context, orderId string) (models.Order, error)
+	GetLastOrders(ctx context.Context, limit int) ([]models.Order, error)
 	SaveOrder(ctx context.Context, order models.Order) error
 }
 

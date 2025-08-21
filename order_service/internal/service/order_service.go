@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"go.uber.org/zap"
+	"golang.org/x/sync/errgroup"
 	"order_service/internal/models"
 	"order_service/internal/ports"
 	"order_service/pkg/logger"
@@ -51,6 +52,16 @@ func (s *OrderService) GetOrder(ctx context.Context, orderUid string) (models.Or
 	return result, err
 }
 
+func (s *OrderService) GetLastOrders(ctx context.Context, limit int) ([]models.Order, error) {
+	result, err := s.storage.GetLastOrders(ctx, limit)
+	if err != nil {
+		logger.GetLoggerFromCtx(ctx).Error(ctx, "error getting last orders by limit",
+			zap.Int("limit", limit), zap.Error(err))
+		return []models.Order{}, fmt.Errorf("error getting last orders by limit: %w", err)
+	}
+	return result, nil
+}
+
 func (s *OrderService) SaveOrder(ctx context.Context, order models.Order) error {
 	// step 1. try to save in storage
 	err := s.storage.SaveOrder(ctx, order)
@@ -70,5 +81,30 @@ func (s *OrderService) SaveOrder(ctx context.Context, order models.Order) error 
 		}
 	}()
 
+	return nil
+}
+
+func (s *OrderService) CacheLastOrders(ctx context.Context, limit int) error {
+	lastOrders, err := s.storage.GetLastOrders(ctx, limit)
+	if err != nil {
+		logger.GetLoggerFromCtx(ctx).Error(ctx, "error getting last orders to cache",
+			zap.Int("limit", limit), zap.Error(err))
+		return fmt.Errorf("error getting last orders to cache: %w", err)
+	}
+
+	var eg *errgroup.Group
+	eg, ctx = errgroup.WithContext(ctx)
+
+	for _, order := range lastOrders {
+		eg.Go(func() error {
+			return s.cache.Set(ctx, order.OrderUID, order)
+		})
+	}
+
+	if err = eg.Wait(); err != nil {
+		logger.GetLoggerFromCtx(ctx).Error(ctx, "error caching last orders to cache",
+			zap.Int("limit", limit), zap.Error(err))
+		return fmt.Errorf("error caching last orders to cache: %w", err)
+	}
 	return nil
 }
