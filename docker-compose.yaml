@@ -36,6 +36,18 @@ services:
     env_file:
       - config/.env
 
+  simulator_service:
+    build:
+      context: ./simulator_service
+      dockerfile: ../build/universal_service/Dockerfile
+    ports:
+      - "${SIMULATOR_SERVICE_HTTP_PORT}:${SIMULATOR_SERVICE_HTTP_PORT}"
+    depends_on:
+      kafka:
+        condition: service_healthy
+    env_file:
+      - config/.env
+
   zookeeper:
     image: confluentinc/cp-zookeeper:7.5.0
     container_name: zookeeper
