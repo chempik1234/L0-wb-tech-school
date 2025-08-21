@@ -280,12 +280,25 @@
         <!-- Блок создания заказа -->
         <div class="card">
             <h2>Создание заказа</h2>
+            <div class="button-group">
+                <button onclick="generateRandomOrder()" class="secondary">
+                    🎲 Сгенерировать случайный заказ
+                </button>
+                <button onclick="generateRandomOrder(3)" class="secondary">
+                    🎲 3 товара
+                </button>
+                <button onclick="generateRandomOrder(5)" class="secondary">
+                    🎲 5 товаров
+                </button>
+            </div>
+
             <div class="form-group">
                 <label for="orderJsonInput">JSON заказа:</label>
-                <textarea id="orderJsonInput" placeholder='Введите JSON заказа (пример см. ниже)'></textarea>
+                <textarea id="orderJsonInput" placeholder='Нажмите "Сгенерировать" или введите JSON вручную'></textarea>
             </div>
+
             <button onclick="createOrder()" id="createOrderBtn">
-                Создать заказ
+                📨 Отправить заказ
             </button>
 
             <div class="response" id="createResponse" style="display: none;">
@@ -352,6 +365,122 @@
 
 <script>
     const API_BASE_URL = 'http://localhost';
+
+    const randomData = {
+        names: ['Иван', 'Петр', 'Мария', 'Анна', 'Сергей', 'Ольга', 'Дмитрий', 'Екатерина'],
+        surnames: ['Иванов', 'Петров', 'Сидоров', 'Смирнов', 'Кузнецов', 'Попов', 'Васильев'],
+        cities: ['Москва', 'Санкт-Петербург', 'Новосибирск', 'Екатеринбург', 'Казань', 'Нижний Новгород'],
+        streets: ['Ленина', 'Пушкина', 'Гагарина', 'Советская', 'Мира', 'Центральная'],
+        products: [
+            { name: 'Смартфон', brand: 'Xiaomi', price: 25000 },
+            { name: 'Ноутбук', brand: 'Lenovo', price: 45000 },
+            { name: 'Наушники', brand: 'Sony', price: 8000 },
+            { name: 'Часы', brand: 'Apple', price: 35000 },
+            { name: 'Планшет', brand: 'Samsung', price: 28000 },
+            { name: 'Фотоаппарат', brand: 'Canon', price: 55000 },
+            { name: 'Телевизор', brand: 'LG', price: 40000 },
+            { name: 'Игровая консоль', brand: 'PlayStation', price: 30000 }
+        ],
+        banks: ['alpha', 'sber', 'tinkoff', 'vtb', 'gazprom'],
+        currencies: ['USD', 'EUR', 'RUB', 'GBP'],
+        deliveryServices: ['meest', 'cdek', 'dhl', 'ups', 'fedex'],
+        locales: ['en', 'ru', 'de', 'fr']
+    };
+
+    function getRandomElement(array) {
+        return array[Math.floor(Math.random() * array.length)];
+    }
+
+    function getRandomInt(min, max) {
+        return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
+
+    function generateRandomUUID() {
+        return 'xxxxxxxxxxxx4xxxyxxxxxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+            const r = Math.random() * 16 | 0;
+            const v = c === 'x' ? r : (r & 0x3 | 0x8);
+            return v.toString(16);
+        }) + 'test';
+    }
+
+    function generateRandomOrder(itemCount = 1) {
+        const name = getRandomElement(randomData.names);
+        const surname = getRandomElement(randomData.surnames);
+        const city = getRandomElement(randomData.cities);
+        const street = getRandomElement(randomData.streets);
+        const house = getRandomInt(1, 100);
+
+        const orderUid = generateRandomUUID();
+        const trackNumber = 'WBIL' + Math.random().toString(36).substr(2, 10).toUpperCase();
+
+        const items = [];
+        let totalGoods = 0;
+
+        for (let i = 0; i < itemCount; i++) {
+            const product = getRandomElement(randomData.products);
+            const price = product.price;
+            const sale = getRandomInt(0, 50);
+            const totalPrice = Math.round(price * (100 - sale) / 100);
+
+            items.push({
+                chrt_id: getRandomInt(1000000, 9999999),
+                track_number: trackNumber,
+                price: price,
+                rid: generateRandomUUID(),
+                name: product.name,
+                sale: sale,
+                size: getRandomInt(0, 5).toString(),
+                total_price: totalPrice,
+                nm_id: getRandomInt(1000000, 9999999),
+                brand: product.brand,
+                status: 202
+            });
+
+            totalGoods += totalPrice;
+        }
+
+        const deliveryCost = getRandomInt(500, 2000);
+        const customFee = getRandomInt(0, 500);
+        const totalAmount = totalGoods + deliveryCost + customFee;
+
+        const randomOrder = {
+            order_uid: orderUid,
+            track_number: trackNumber,
+            entry: "WBIL",
+            delivery: {
+                name: `${name} ${surname}`,
+                phone: `+7${getRandomInt(900, 999)}${getRandomInt(1000000, 9999999)}`,
+                zip: getRandomInt(100000, 199999).toString(),
+                city: city,
+                address: `ул. ${street}, д. ${house}`,
+                region: `${city}ская область`,
+                email: `${name.toLowerCase()}.${surname.toLowerCase()}@gmail.com`
+            },
+            payment: {
+                transaction: orderUid,
+                request_id: "",
+                currency: getRandomElement(randomData.currencies),
+                provider: "wbpay",
+                amount: totalAmount,
+                payment_dt: Math.floor(Date.now() / 1000) - getRandomInt(0, 86400),
+                bank: getRandomElement(randomData.banks),
+                delivery_cost: deliveryCost,
+                goods_total: totalGoods,
+                custom_fee: customFee
+            },
+            items: items,
+            locale: getRandomElement(randomData.locales),
+            internal_signature: "",
+            customer_id: `user${getRandomInt(1000, 9999)}`,
+            delivery_service: getRandomElement(randomData.deliveryServices),
+            shardkey: getRandomInt(1, 9).toString(),
+            sm_id: getRandomInt(1, 999),
+            date_created: new Date().toISOString(),
+            oof_shard: getRandomInt(1, 3).toString()
+        };
+
+        document.getElementById('orderJsonInput').value = JSON.stringify(randomOrder, null, 2);
+    }
 
     function getOrder() {
         const orderUid = document.getElementById('orderUid').value.trim();
