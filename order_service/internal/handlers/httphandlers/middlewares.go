@@ -1,4 +1,4 @@
-package http_handlers
+package httphandlers
 
 import (
 	"github.com/ogen-go/ogen/middleware"
@@ -6,6 +6,7 @@ import (
 	"order_service/pkg/logger"
 )
 
+// LoggingMiddleware creates a logger for each request and passes it into request.Context
 func LoggingMiddleware() middleware.Middleware {
 	return func(
 		req middleware.Request,

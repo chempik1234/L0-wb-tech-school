@@ -7,7 +7,7 @@ import (
 	"net/http"
 	"order_service/internal/api"
 	"order_service/internal/config"
-	"order_service/internal/handlers/http_handlers"
+	"order_service/internal/handlers/httphandlers"
 	"order_service/internal/models"
 	"order_service/internal/ports/adapters/cache"
 	"order_service/internal/ports/adapters/storage"
@@ -15,7 +15,7 @@ import (
 	"order_service/internal/service"
 	"order_service/pkg/kafka"
 	"order_service/pkg/logger"
-	"order_service/pkg/pkg_ports/adapters/receiver"
+	"order_service/pkg/pkgports/adapters/receiver"
 	"order_service/pkg/postgres"
 	"os"
 	"os/signal"
@@ -75,7 +75,7 @@ func main() {
 	cacheAdapter := cache.NewOrderCacheAdapterInMemoryLRU(serviceCfg.CacheCapacity)
 
 	orderService := service.NewOrderService(storageAdapter, cacheAdapter)
-	orderServiceHandler := http_handlers.NewOrderServiceHttpHandler(orderService)
+	orderServiceHandler := httphandlers.NewOrderServiceHTTPHandler(orderService)
 
 	kafkaOrderReceiverService := service.NewOrderReceiverService[*receiver.KafkaMessage[models.Order]](receiverAdapter, orderService.SaveOrder)
 	//endregion
@@ -90,7 +90,7 @@ func main() {
 
 	// create handler aka mux from ogen-generated function
 	// using the service
-	apiHandler, err := api.NewServer(orderServiceHandler, api.WithMiddleware(http_handlers.LoggingMiddleware()))
+	apiHandler, err := api.NewServer(orderServiceHandler, api.WithMiddleware(httphandlers.LoggingMiddleware()))
 	if err != nil {
 		logger.GetLoggerFromCtx(ctx).Fatal(ctx, "failed to create http server", zap.Error(err))
 	}

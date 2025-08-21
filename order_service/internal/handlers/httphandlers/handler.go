@@ -1,4 +1,4 @@
-package http_handlers
+package httphandlers
 
 import (
 	"context"
@@ -11,25 +11,29 @@ import (
 	"order_service/pkg/logger"
 )
 
-// OrderServiceHttpHandler is a wrapper around service.OrderService that implements generated openapi handler
-type OrderServiceHttpHandler struct {
+// OrderServiceHTTPHandler implements generated openapi handler
+//
+// Basically, is a wrapper around service.OrderService
+type OrderServiceHTTPHandler struct {
 	service *service.OrderService
 }
 
-func NewOrderServiceHttpHandler(service *service.OrderService) *OrderServiceHttpHandler {
-	return &OrderServiceHttpHandler{
+// NewOrderServiceHTTPHandler creates a new OrderServiceHTTPHandler that uses given service
+func NewOrderServiceHTTPHandler(service *service.OrderService) *OrderServiceHTTPHandler {
+	return &OrderServiceHTTPHandler{
 		service: service,
 	}
 }
 
-func (s *OrderServiceHttpHandler) OrderIDGet(ctx context.Context, params api.OrderIDGetParams) (api.OrderIDGetRes, error) {
-	orderUid := params.ID
+// OrderIDGet is the implementation of GET order by id endpoint
+func (s *OrderServiceHTTPHandler) OrderIDGet(ctx context.Context, params api.OrderIDGetParams) (api.OrderIDGetRes, error) {
+	orderUID := params.ID
 
 	// query service
-	result, err := s.service.GetOrder(ctx, orderUid)
+	result, err := s.service.GetOrder(ctx, orderUID)
 
 	if err != nil {
-		if errors.Is(err, custom_errors.ErrOrderNotFound) {
+		if errors.Is(err, customerrors.ErrOrderNotFound) {
 			return &api.NotFoundErrorResponse{
 				Message: err.Error(),
 			}, nil
@@ -44,15 +48,15 @@ func (s *OrderServiceHttpHandler) OrderIDGet(ctx context.Context, params api.Ord
 	items := make([]api.OrderItem, len(result.Items))
 	for i, item := range result.Items {
 		items[i] = api.OrderItem{
-			ChrtID:      int64(item.ChrtId),
+			ChrtID:      int64(item.ChrtID),
 			TrackNumber: item.TrackNumber,
 			Price:       item.Price,
-			Rid:         item.RId,
+			Rid:         item.RID,
 			Name:        item.Name,
 			Sale:        item.Sale,
 			Size:        item.Size,
 			TotalPrice:  item.TotalPrice,
-			NmID:        int64(item.NmId),
+			NmID:        int64(item.NmID),
 			Brand:       item.Brand,
 			Status:      item.Status,
 		}
@@ -74,7 +78,7 @@ func (s *OrderServiceHttpHandler) OrderIDGet(ctx context.Context, params api.Ord
 		Payment: api.Payment{
 			Transaction: result.Payment.Transaction,
 			RequestID: api.OptString{
-				Value: result.Payment.RequestId,
+				Value: result.Payment.RequestID,
 				Set:   true,
 			},
 			Currency:     result.Payment.Currency,
@@ -92,22 +96,23 @@ func (s *OrderServiceHttpHandler) OrderIDGet(ctx context.Context, params api.Ord
 			Set:   true,
 			Value: result.InternalSignature,
 		},
-		CustomerID:      result.CustomerId,
+		CustomerID:      result.CustomerID,
 		DeliveryService: result.DeliveryService,
 		Shardkey:        result.ShardKey,
-		SmID:            result.SmId,
+		SmID:            result.SmID,
 		DateCreated:     result.DateCreated,
 		OofShard:        result.OofShard,
 	}
 
-	logger.GetOrCreateLoggerFromCtx(ctx).Info(ctx, "read order by id", zap.String("order_uid", orderUid))
+	logger.GetOrCreateLoggerFromCtx(ctx).Info(ctx, "read order by id", zap.String("order_uid", orderUID))
 
 	return &response, nil
 }
 
-func (s *OrderServiceHttpHandler) NewError(ctx context.Context, err error) *api.ErrorResponseStatusCode {
+// NewError is the required method that returns an openapi error from given basic error
+func (s *OrderServiceHTTPHandler) NewError(ctx context.Context, err error) *api.ErrorResponseStatusCode {
 	// handle custom errors whose status codes we know
-	if errors.Is(err, custom_errors.ErrOrderNotFound) {
+	if errors.Is(err, customerrors.ErrOrderNotFound) {
 		return &api.ErrorResponseStatusCode{
 			StatusCode: 404,
 			Response: api.ErrorResponse{

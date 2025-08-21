@@ -10,11 +10,13 @@ import (
 	"order_service/pkg/logger"
 )
 
+// OrderService is a service that stores and retrieves the orders
 type OrderService struct {
 	storage ports.OrderStorage
 	cache   ports.OrderCache
 }
 
+// NewOrderService creates a new OrderService
 func NewOrderService(storage ports.OrderStorage, cache ports.OrderCache) *OrderService {
 	return &OrderService{
 		storage: storage,
@@ -22,19 +24,20 @@ func NewOrderService(storage ports.OrderStorage, cache ports.OrderCache) *OrderS
 	}
 }
 
-func (s *OrderService) GetOrder(ctx context.Context, orderUid string) (models.Order, error) {
+// GetOrder retrieves an order, firstly from cache, then storage. Caches found value on cache miss
+func (s *OrderService) GetOrder(ctx context.Context, orderUID string) (models.Order, error) {
 	// step 1. try to check cache first
-	result, found, err := s.cache.Get(ctx, orderUid)
+	result, found, err := s.cache.Get(ctx, orderUID)
 	if err != nil {
 		return models.Order{}, fmt.Errorf("error checking orders cache: %w", err)
 	}
 
 	if !found {
 		// step 2. call the storage if not found in cache
-		result, err = s.storage.GetOrderById(ctx, orderUid)
+		result, err = s.storage.GetOrderByID(ctx, orderUID)
 		if err != nil {
 			logger.GetLoggerFromCtx(ctx).Error(ctx, "error retrieving order from storage",
-				zap.String("key", orderUid), zap.Error(err))
+				zap.String("key", orderUID), zap.Error(err))
 			return models.Order{}, err
 		}
 
@@ -43,7 +46,7 @@ func (s *OrderService) GetOrder(ctx context.Context, orderUid string) (models.Or
 			cacheErr := s.cache.Set(ctx, result.OrderUID, result)
 			if err != nil {
 				logger.GetLoggerFromCtx(ctx).Error(ctx, "error caching order",
-					zap.String("key", orderUid), zap.Error(cacheErr))
+					zap.String("key", orderUID), zap.Error(cacheErr))
 			}
 		}()
 
@@ -52,6 +55,7 @@ func (s *OrderService) GetOrder(ctx context.Context, orderUid string) (models.Or
 	return result, err
 }
 
+// GetLastOrders gets a list of last <=limit orders from storage
 func (s *OrderService) GetLastOrders(ctx context.Context, limit int) ([]models.Order, error) {
 	result, err := s.storage.GetLastOrders(ctx, limit)
 	if err != nil {
@@ -62,6 +66,7 @@ func (s *OrderService) GetLastOrders(ctx context.Context, limit int) ([]models.O
 	return result, nil
 }
 
+// SaveOrder saves an order in storage and runs a goroutine that caches it after return
 func (s *OrderService) SaveOrder(ctx context.Context, order models.Order) error {
 	// step 1. try to save in storage
 	err := s.storage.SaveOrder(ctx, order)
@@ -84,6 +89,7 @@ func (s *OrderService) SaveOrder(ctx context.Context, order models.Order) error 
 	return nil
 }
 
+// CacheLastOrders retrieves and saves last <=limit orders in cache
 func (s *OrderService) CacheLastOrders(ctx context.Context, limit int) error {
 	lastOrders, err := s.storage.GetLastOrders(ctx, limit)
 	if err != nil {

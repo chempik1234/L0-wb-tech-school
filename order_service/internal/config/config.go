@@ -8,6 +8,8 @@ import (
 )
 
 // OrderServiceConfig is named after the microservice, not the service struct!
+//
+// It is a part of Config, the assembled config
 type OrderServiceConfig struct {
 	KafkaTopic   string `yaml:"kafka_topic" env:"KAFKA_TOPIC"`
 	KafkaGroupID string `yaml:"kafka_group_id" env:"KAFKA_GROUP_ID"`
@@ -21,12 +23,14 @@ type OrderServiceConfig struct {
 	SaveBackoffSeconds     int `yaml:"save_backoff_seconds" env:"SAVE_BACKOFF_SECONDS"`
 }
 
+// Config is the main, assembled config type
 type Config struct {
 	OrderService OrderServiceConfig `yaml:"order_service" env-prefix:"ORDER_SERVICE_"`
 	Kafka        kafka.Config       `yaml:"kafka" env-prefix:"KAFKA_"`
 	Postgres     postgres.Config    `yaml:"postgres" env-prefix:"POSTGRES_"`
 }
 
+// TryRead tries to read config from ENV and returns it on success
 func TryRead() (Config, error) {
 	var cfg Config
 	if err := cleanenv.ReadEnv(&cfg); err != nil {

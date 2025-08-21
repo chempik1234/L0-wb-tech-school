@@ -14,17 +14,24 @@ import (
 	"strings"
 )
 
+// OrdersStoragePostgres is the postgres implementation of ports.OrderStorage
 type OrdersStoragePostgres struct {
 	pool *pgxpool.Pool
 }
 
+// NewOrdersStoragePostgres creates a new *OrdersStoragePostgres with given DB pool
 func NewOrdersStoragePostgres(pool *pgxpool.Pool) *OrdersStoragePostgres {
 	return &OrdersStoragePostgres{
 		pool: pool,
 	}
 }
 
-func (o *OrdersStoragePostgres) GetOrderById(ctx context.Context, orderId string) (models.Order, error) {
+// GetOrderByID is the implementation of GetOrderByID method of ports.OrderStorage
+//
+// It gathers all data about the order with given ID if any.
+//
+// Querying for order and its items is parallel
+func (o *OrdersStoragePostgres) GetOrderByID(ctx context.Context, orderID string) (models.Order, error) {
 	var items []models.OrderItem
 	var order models.Order
 
@@ -32,7 +39,7 @@ func (o *OrdersStoragePostgres) GetOrderById(ctx context.Context, orderId string
 
 	eg.Go(func() error {
 		var err error
-		order, err = o.getOrderByIdBase(ctx, orderId)
+		order, err = o.getOrderByIDBase(ctx, orderID)
 		if err != nil {
 			return fmt.Errorf("error trying to get order itself: %w", err)
 		}
@@ -41,7 +48,7 @@ func (o *OrdersStoragePostgres) GetOrderById(ctx context.Context, orderId string
 
 	eg.Go(func() error {
 		var err error
-		items, err = o.getOrderItemsById(ctx, orderId)
+		items, err = o.getOrderItemsByID(ctx, orderID)
 		if err != nil {
 			return fmt.Errorf("error trying to order items: %w", err)
 		}
@@ -57,12 +64,12 @@ func (o *OrdersStoragePostgres) GetOrderById(ctx context.Context, orderId string
 	return order, nil
 }
 
-// getOrderByIdBase makes a long SELECT query to retrieve models.Order fields including models.Delivery, models.Payment
+// getOrderByIDBase makes a long SELECT query to retrieve models.Order fields including models.Delivery, models.Payment
 //
 // instead of making many (3) async queries to many (3) different tables we make 1 big query
 //
-// call getOrderItemsById to find the items
-func (o *OrdersStoragePostgres) getOrderByIdBase(ctx context.Context, orderId string) (models.Order, error) {
+// call getOrderItemsByID to find the items
+func (o *OrdersStoragePostgres) getOrderByIDBase(ctx context.Context, orderID string) (models.Order, error) {
 	// build select query
 	sql, args, err := squirrel.Select(
 		// order fields
@@ -79,7 +86,7 @@ func (o *OrdersStoragePostgres) getOrderByIdBase(ctx context.Context, orderId st
 		Join("order_service.deliveries d ON d.order_id = o.order_uid").
 		Join("order_service.payments p ON p.order_id = o.order_uid").
 		Join("order_service.order_items i ON i.order_id = o.order_uid").
-		Where(squirrel.Eq{"order_uid": orderId}).
+		Where(squirrel.Eq{"order_uid": orderID}).
 		PlaceholderFormat(squirrel.Dollar).
 		ToSql()
 	if err != nil {
@@ -92,28 +99,28 @@ func (o *OrdersStoragePostgres) getOrderByIdBase(ctx context.Context, orderId st
 	err = o.pool.QueryRow(context.Background(), sql, args...).Scan(
 		// order fields
 		&order.OrderUID, &order.TrackNumber, &order.Entry, &order.Locale, &order.InternalSignature,
-		&order.CustomerId, &order.DeliveryService, &order.ShardKey, &order.SmId, &order.DateCreated,
+		&order.CustomerID, &order.DeliveryService, &order.ShardKey, &order.SmID, &order.DateCreated,
 		&order.OofShard, &order.CreatedAt, &order.UpdatedAt,
 		// delivery fields
-		&order.Delivery.OrderId, &order.Delivery.Name, &order.Delivery.Phone,
+		&order.Delivery.OrderID, &order.Delivery.Name, &order.Delivery.Phone,
 		&order.Delivery.Zip, &order.Delivery.City, &order.Delivery.Address,
 		&order.Delivery.Region, &order.Delivery.Email,
 		// payment fields
-		&order.Payment.OrderId, &order.Payment.Transaction, &order.Payment.RequestId,
+		&order.Payment.OrderID, &order.Payment.Transaction, &order.Payment.RequestID,
 		&order.Payment.Currency, &order.Payment.Provider, &order.Payment.Amount,
 		&order.Payment.PaymentDt, &order.Payment.Bank, &order.Payment.DeliveryCost,
 		&order.Payment.GoodsTotal, &order.Payment.CustomFee,
 	)
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
-			return models.Order{}, custom_errors.ErrOrderNotFound
+			return models.Order{}, customerrors.ErrOrderNotFound
 		}
 
 		return models.Order{}, fmt.Errorf("error mapping query result fields: %w", err)
 	}
 
 	if order.OrderUID == "" {
-		return models.Order{}, custom_errors.ErrOrderNotFound
+		return models.Order{}, customerrors.ErrOrderNotFound
 	}
 
 	return order, nil
@@ -123,7 +130,7 @@ func (o *OrdersStoragePostgres) getOrderByIdBase(ctx context.Context, orderId st
 //
 // it includes Payment and Delivery fields
 //
-// call getOrderItemsById to get items for each of these
+// call getOrderItemsByID to get items for each of these
 func (o *OrdersStoragePostgres) getLastOrdersBase(ctx context.Context, limit int) ([]models.Order, error) {
 	// build select query
 	sql, args, err := squirrel.Select(
@@ -163,14 +170,14 @@ func (o *OrdersStoragePostgres) getLastOrdersBase(ctx context.Context, limit int
 		err = o.pool.QueryRow(context.Background(), sql, args...).Scan(
 			// order fields
 			&order.OrderUID, &order.TrackNumber, &order.Entry, &order.Locale, &order.InternalSignature,
-			&order.CustomerId, &order.DeliveryService, &order.ShardKey, &order.SmId, &order.DateCreated,
+			&order.CustomerID, &order.DeliveryService, &order.ShardKey, &order.SmID, &order.DateCreated,
 			&order.OofShard, &order.CreatedAt, &order.UpdatedAt,
 			// delivery fields
-			&order.Delivery.OrderId, &order.Delivery.Name, &order.Delivery.Phone,
+			&order.Delivery.OrderID, &order.Delivery.Name, &order.Delivery.Phone,
 			&order.Delivery.Zip, &order.Delivery.City, &order.Delivery.Address,
 			&order.Delivery.Region, &order.Delivery.Email,
 			// payment fields
-			&order.Payment.OrderId, &order.Payment.Transaction, &order.Payment.RequestId,
+			&order.Payment.OrderID, &order.Payment.Transaction, &order.Payment.RequestID,
 			&order.Payment.Currency, &order.Payment.Provider, &order.Payment.Amount,
 			&order.Payment.PaymentDt, &order.Payment.Bank, &order.Payment.DeliveryCost,
 			&order.Payment.GoodsTotal, &order.Payment.CustomFee,
@@ -184,15 +191,15 @@ func (o *OrdersStoragePostgres) getLastOrdersBase(ctx context.Context, limit int
 	return orders, nil
 }
 
-// getOrderItemsById makes a query to create a slice of models.OrderItem
+// getOrderItemsByID makes a query to create a slice of models.OrderItem
 // which can be used when retrieving models.Order
-func (o *OrdersStoragePostgres) getOrderItemsById(ctx context.Context, orderId string) ([]models.OrderItem, error) {
+func (o *OrdersStoragePostgres) getOrderItemsByID(ctx context.Context, orderID string) ([]models.OrderItem, error) {
 	sql, args, err := squirrel.Select(
 		"order_id", "chrt_id", "track_number", "price", "rid",
 		"name", "sale", "size", "total_price", "nm_id", "brand", "status",
 	).
 		From("order_items").
-		Where(squirrel.Eq{"order_id": orderId}).
+		Where(squirrel.Eq{"order_id": orderID}).
 		PlaceholderFormat(squirrel.Dollar).
 		ToSql()
 	if err != nil {
@@ -210,8 +217,8 @@ func (o *OrdersStoragePostgres) getOrderItemsById(ctx context.Context, orderId s
 	for rows.Next() {
 		var item models.OrderItem
 		err = rows.Scan(
-			&item.OrderId, &item.ChrtId, &item.TrackNumber, &item.Price, &item.RId,
-			&item.Name, &item.Sale, &item.Size, &item.TotalPrice, &item.NmId,
+			&item.OrderID, &item.ChrtID, &item.TrackNumber, &item.Price, &item.RID,
+			&item.Name, &item.Sale, &item.Size, &item.TotalPrice, &item.NmID,
 			&item.Brand, &item.Status,
 		)
 		if err != nil {
@@ -223,6 +230,11 @@ func (o *OrdersStoragePostgres) getOrderItemsById(ctx context.Context, orderId s
 	return items, nil
 }
 
+// GetLastOrders is implementation of such method in ports.OrderStorage
+//
+// It gets a few orders (limited by limit param) with biggest “created_at“
+//
+// Meant to be used in caching on startup
 func (o *OrdersStoragePostgres) GetLastOrders(ctx context.Context, limit int) ([]models.Order, error) {
 	ordersList, err := o.getLastOrdersBase(ctx, limit)
 	if err != nil {
@@ -239,7 +251,7 @@ func (o *OrdersStoragePostgres) GetLastOrders(ctx context.Context, limit int) ([
 			var items []models.OrderItem
 			var itemsErr error
 
-			items, itemsErr = o.getOrderItemsById(ctx, order.OrderUID)
+			items, itemsErr = o.getOrderItemsByID(ctx, order.OrderUID)
 			if itemsErr != nil {
 				return fmt.Errorf("error finding items for order %s: %w", order.OrderUID, itemsErr)
 			}
@@ -254,12 +266,14 @@ func (o *OrdersStoragePostgres) GetLastOrders(ctx context.Context, limit int) ([
 
 	for i, items := range itemsList {
 		ordersList[i].Items = items
-		fmt.Println("SOSAAAL!!!!", len(items), items)
 	}
 
 	return ordersList, nil
 }
 
+// SaveOrder is implementation of such method in ports.OrderStorage
+//
+// It saves the order and related entities in a "long" transaction
 func (o *OrdersStoragePostgres) SaveOrder(ctx context.Context, order models.Order) error {
 	transaction, err := o.pool.Begin(ctx)
 	if err != nil {
@@ -310,8 +324,8 @@ func saveOrder(ctx context.Context, transaction pgx.Tx, order *models.Order) err
 			"delivery_service", "shardkey", "sm_id", "date_created", "oof_shard",
 		).
 		Values(
-			order.OrderUID, order.TrackNumber, order.Entry, order.Locale, order.InternalSignature, order.CustomerId,
-			order.DeliveryService, order.ShardKey, order.SmId, order.DateCreated, order.OofShard,
+			order.OrderUID, order.TrackNumber, order.Entry, order.Locale, order.InternalSignature, order.CustomerID,
+			order.DeliveryService, order.ShardKey, order.SmID, order.DateCreated, order.OofShard,
 		).
 		PlaceholderFormat(squirrel.Dollar).
 		ToSql()
@@ -331,7 +345,7 @@ func saveOrder(ctx context.Context, transaction pgx.Tx, order *models.Order) err
 	return err
 }
 
-func savePayment(ctx context.Context, transaction pgx.Tx, orderUid string, payment *models.Payment) error {
+func savePayment(ctx context.Context, transaction pgx.Tx, orderUID string, payment *models.Payment) error {
 	sql, args, err := squirrel.
 		Insert("order_service.payments").
 		Columns(
@@ -339,7 +353,7 @@ func savePayment(ctx context.Context, transaction pgx.Tx, orderUid string, payme
 			"amount", "payment_dt", "bank", "delivery_cost", "goods_total", "custom_fee",
 		).
 		Values(
-			orderUid, payment.Transaction, payment.RequestId, payment.Currency,
+			orderUID, payment.Transaction, payment.RequestID, payment.Currency,
 			payment.Provider, payment.Amount, payment.PaymentDt, payment.Bank,
 			payment.DeliveryCost, payment.GoodsTotal, payment.CustomFee,
 		).
@@ -361,14 +375,14 @@ func savePayment(ctx context.Context, transaction pgx.Tx, orderUid string, payme
 	return err
 }
 
-func saveDelivery(ctx context.Context, transaction pgx.Tx, orderUid string, delivery *models.Delivery) error {
+func saveDelivery(ctx context.Context, transaction pgx.Tx, orderUID string, delivery *models.Delivery) error {
 	sql, args, err := squirrel.
 		Insert("order_service.deliveries").
 		Columns(
 			"order_id", "name", "phone", "zip", "city", "address", "region", "email",
 		).
 		Values(
-			orderUid, delivery.Name, delivery.Phone, delivery.Zip, delivery.City, delivery.Address,
+			orderUID, delivery.Name, delivery.Phone, delivery.Zip, delivery.City, delivery.Address,
 			delivery.Region, delivery.Email,
 		).
 		PlaceholderFormat(squirrel.Dollar).
@@ -389,7 +403,7 @@ func saveDelivery(ctx context.Context, transaction pgx.Tx, orderUid string, deli
 	return err
 }
 
-func saveItems(ctx context.Context, transaction pgx.Tx, orderUid string, items *[]models.OrderItem) error {
+func saveItems(ctx context.Context, transaction pgx.Tx, orderUID string, items *[]models.OrderItem) error {
 	if len(*items) == 0 {
 		return nil
 	}
@@ -397,8 +411,8 @@ func saveItems(ctx context.Context, transaction pgx.Tx, orderUid string, items *
 	valuesList := make([]string, len(*items))
 	for i, item := range *items {
 		valuesList[i] = fmt.Sprintf("('%s',%d,'%s',%d,'%s','%s',%d,'%s',%d,%d,'%s',%d)",
-			orderUid, item.ChrtId, item.TrackNumber, item.Price, item.RId, item.Name, item.Sale, item.Size,
-			item.TotalPrice, item.NmId, item.Brand, item.Status)
+			orderUID, item.ChrtID, item.TrackNumber, item.Price, item.RID, item.Name, item.Sale, item.Size,
+			item.TotalPrice, item.NmID, item.Brand, item.Status)
 	}
 	values := strings.Join(valuesList, ",")
 

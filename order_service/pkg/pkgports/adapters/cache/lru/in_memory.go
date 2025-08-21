@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 	"go.uber.org/zap"
-	"order_service/pkg/linked_list"
+	"order_service/pkg/linkedlist"
 	"order_service/pkg/logger"
 	"sync"
 )
@@ -21,7 +21,7 @@ type lruKey[Value any] struct {
 // It uses sync.RWMutex because there are going to be many read operations from the web
 type CacheLRUInMemory[Key comparable, Value any] struct {
 	data     map[Key]lruKey[Value]
-	keysList linked_list.LinkedList[Key]
+	keysList linkedlist.LinkedList[Key]
 	mu       sync.RWMutex
 	cap      int
 }
@@ -35,14 +35,18 @@ type CacheLRUInMemory[Key comparable, Value any] struct {
 //
 // GET happens more often, so we choose option A
 
+// NewCacheLRUInMemory creates a new CacheLRUInMemory with given capacity and key/value types
+//
+// Example: myCache := NewCacheLRUInMemory[string, myStruct](myCapacity)
 func NewCacheLRUInMemory[Key comparable, Value any](cacheCapacity int) *CacheLRUInMemory[Key, Value] {
 	return &CacheLRUInMemory[Key, Value]{
 		data:     make(map[Key]lruKey[Value]),
-		keysList: linked_list.NewLinkedList[Key](),
+		keysList: linkedlist.NewLinkedList[Key](),
 		cap:      cacheCapacity,
 	}
 }
 
+// Get tries to get an item by key, logs on miss
 func (c *CacheLRUInMemory[Key, Value]) Get(ctx context.Context, key Key) (Value, bool, error) {
 	c.mu.RLock()
 	defer c.mu.RUnlock()

@@ -5,8 +5,8 @@ import (
 	"errors"
 	"fmt"
 	"github.com/golang-migrate/migrate/v4"
-	_ "github.com/golang-migrate/migrate/v4/database/postgres"
-	_ "github.com/golang-migrate/migrate/v4/source/file"
+	_ "github.com/golang-migrate/migrate/v4/database/postgres" // required import
+	_ "github.com/golang-migrate/migrate/v4/source/file"       // required import
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
@@ -22,6 +22,7 @@ type Config struct {
 	MinConns int32 `yaml:"min_conn" env:"MIN_CONN" env-default:"5"`
 }
 
+// New creates a new postgres pool with given settings
 func New(ctx context.Context, config Config) (*pgxpool.Pool, error) {
 	connString := fmt.Sprintf("postgres://%s:%s@%s:%d/%s?sslmode=disable&pool_min_conns=%d&pool_max_conns=%d",
 		config.Username,

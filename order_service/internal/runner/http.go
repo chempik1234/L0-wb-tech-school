@@ -9,6 +9,7 @@ import (
 	"time"
 )
 
+// RunHTTP calls ListenAndServe on given srv, logs the beginning and the shutdown if on failure
 func RunHTTP(ctx context.Context, srv *http.Server) {
 	logger.GetLoggerFromCtx(ctx).Info(ctx, fmt.Sprintf("listening at %s", srv.Addr))
 	if err := srv.ListenAndServe(); err != nil {
@@ -16,6 +17,7 @@ func RunHTTP(ctx context.Context, srv *http.Server) {
 	}
 }
 
+// ShutdownHTTP stops httpServer with a 10 seconds timeout, logs on error
 func ShutdownHTTP(ctx context.Context, httpServer *http.Server) {
 	cancelCtx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()

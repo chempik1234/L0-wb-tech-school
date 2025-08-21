@@ -9,8 +9,12 @@ import (
 	"order_service/pkg/logger"
 )
 
+// ProcessOrderFunction is the type of function that can be called on each received order
 type ProcessOrderFunction func(context.Context, models.Order) error
 
+// OrderReceiverService is a service that reads the orders continuously, validates and processes them
+//
+// It supports different implementations, so MessageType is generic
 type OrderReceiverService[MessageType any] struct {
 	receiver             ports.OrderReceiver[MessageType]
 	processOrderFunction ProcessOrderFunction
@@ -18,10 +22,12 @@ type OrderReceiverService[MessageType any] struct {
 	done chan struct{}
 }
 
+// NewOrderReceiverService creates a new receiver service with given receiver repository and process function
 func NewOrderReceiverService[MessageType any](receiver ports.OrderReceiver[MessageType], processOrderFunction ProcessOrderFunction) *OrderReceiverService[MessageType] {
 	return &OrderReceiverService[MessageType]{receiver: receiver, processOrderFunction: processOrderFunction, done: make(chan struct{})}
 }
 
+// StartReceivingOrders is the main loop function that is meant to be run in background
 func (s *OrderReceiverService[_]) StartReceivingOrders(ctx context.Context) error {
 out:
 	for {
@@ -75,10 +81,13 @@ out:
 	return nil
 }
 
+// ProcessOrder is called on every valid order, calls processOrderFunction
+// provided in NewOrderReceiverService
 func (s *OrderReceiverService[_]) ProcessOrder(ctx context.Context, order models.Order) error {
 	return s.processOrderFunction(ctx, order)
 }
 
+// StopReceivingOrders sends a signal to stop looping in the StartReceivingOrders
 func (s *OrderReceiverService[_]) StopReceivingOrders(ctx context.Context) {
 	// please tell me if it's nice or bad
 	s.done <- struct{}{}

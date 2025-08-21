@@ -4,16 +4,19 @@ import (
 	"time"
 )
 
+// Order is the main entity of this service
+//
+// An order also includes a Payment, a Delivery and a list of OrderItem
 type Order struct {
 	OrderUID          string    `json:"order_uid"`
 	TrackNumber       string    `json:"track_number"`
 	Entry             string    `json:"entry"`
 	Locale            string    `json:"locale"`
 	InternalSignature string    `json:"internal_signature"`
-	CustomerId        string    `json:"customer_id"`
+	CustomerID        string    `json:"customer_id"`
 	DeliveryService   string    `json:"delivery_service"`
 	ShardKey          string    `json:"shardkey"`
-	SmId              int       `json:"sm_id"`
+	SmID              int       `json:"sm_id"`
 	DateCreated       time.Time `json:"date_created"`
 	OofShard          string    `json:"oof_shard"`
 	CreatedAt         time.Time `json:"created_at"`
@@ -24,8 +27,9 @@ type Order struct {
 	Items    []OrderItem `json:"items"`
 }
 
+// Delivery is an entity that linked with Order 1:1
 type Delivery struct {
-	OrderId string `json:"order_id"`
+	OrderID string `json:"order_id"`
 	Name    string `json:"name"`
 	Phone   string `json:"phone"`
 	Zip     string `json:"zip"`
@@ -35,10 +39,11 @@ type Delivery struct {
 	Email   string `json:"email"`
 }
 
+// Payment is an entity that linked with Order 1:1
 type Payment struct {
-	OrderId      string `json:"order_id"`
+	OrderID      string `json:"order_id"`
 	Transaction  string `json:"transaction"`
-	RequestId    string `json:"request_id"`
+	RequestID    string `json:"request_id"`
 	Currency     string `json:"currency"`
 	Provider     string `json:"provider"`
 	Amount       int    `json:"amount"`
@@ -49,17 +54,18 @@ type Payment struct {
 	CustomFee    int    `json:"custom_fee"`
 }
 
+// OrderItem is an entity that linked with Order M:1
 type OrderItem struct {
-	OrderId     string `json:"order_id"`
-	ChrtId      int    `json:"chrt_id"`
+	OrderID     string `json:"order_id"`
+	ChrtID      int    `json:"chrt_id"`
 	TrackNumber string `json:"track_number"`
 	Price       int    `json:"price"`
-	RId         string `json:"rid"`
+	RID         string `json:"rid"`
 	Name        string `json:"name"`
 	Sale        int    `json:"sale"`
 	Size        string `json:"size"`
 	TotalPrice  int    `json:"total_price"`
-	NmId        int    `json:"nm_id"`
+	NmID        int    `json:"nm_id"`
 	Brand       string `json:"brand"`
 	Status      int    `json:"status"`
 }

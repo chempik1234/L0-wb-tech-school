@@ -7,7 +7,7 @@ import (
 	"github.com/segmentio/kafka-go"
 	"go.uber.org/zap"
 	"order_service/pkg/logger"
-	"order_service/pkg/pkg_ports"
+	"order_service/pkg/pkgports"
 	"time"
 )
 
@@ -36,6 +36,9 @@ func NewFreshMessage[Value any](message kafka.Message, value Value) *KafkaMessag
 	}
 }
 
+// NewRetriedMessage creates a new *KafkaMessage[Value] from given one
+//
+// Automatically sets timestamp and tries count
 func NewRetriedMessage[Value any](message *KafkaMessage[Value], retryDelay time.Duration) *KafkaMessage[Value] {
 	return &KafkaMessage[Value]{
 		Value:      message.Value,
@@ -45,6 +48,7 @@ func NewRetriedMessage[Value any](message *KafkaMessage[Value], retryDelay time.
 	}
 }
 
+// KafkaReceiver is an implementation of pkgports.Receiver that uses Kafka
 type KafkaReceiver[Value any] struct {
 	reader       *kafka.Reader
 	maxRetries   int
@@ -55,10 +59,11 @@ type KafkaReceiver[Value any] struct {
 // To our disappointment, I didn't create generic interfaces for retry and backoff
 // Skill issue
 
+// NewKafkaReceiver creates a new *KafkaReceiver, returning it as a pkgports.Receiver
 func NewKafkaReceiver[ValueType any](
 	reader *kafka.Reader,
 	maxRetries int, retriesCapacity int, fixedBackoff time.Duration,
-) pkg_ports.Receiver[ValueType, *KafkaMessage[ValueType]] {
+) pkgports.Receiver[ValueType, *KafkaMessage[ValueType]] {
 	return &KafkaReceiver[ValueType]{
 		reader:       reader,
 		maxRetries:   maxRetries,
@@ -67,6 +72,11 @@ func NewKafkaReceiver[ValueType any](
 	}
 }
 
+// Consume is supposed to be called continuously to read new messages
+//
+// # Messages that are put in ``retry`` have high priority
+//
+// If retried message's backoff isn't over yet, it's moved to the end. This is wrong but simple
 func (k *KafkaReceiver[Value]) Consume(ctx context.Context) (Value, *KafkaMessage[Value], error) {
 	select {
 	case failedMessage := <-k.retryChan:
@@ -94,10 +104,12 @@ func (k *KafkaReceiver[Value]) Consume(ctx context.Context) (Value, *KafkaMessag
 	return value, NewFreshMessage[Value](msg, value), nil
 }
 
+// OnSuccess must be called on every successful message processing
 func (k *KafkaReceiver[Value]) OnSuccess(ctx context.Context, givenMessage *KafkaMessage[Value]) error {
 	return k.reader.CommitMessages(ctx, givenMessage.Message)
 }
 
+// OnFail must be called on every unsuccessful message processing
 func (k *KafkaReceiver[Value]) OnFail(ctx context.Context, shouldRetry bool, givenMessage *KafkaMessage[Value]) error {
 	if shouldRetry {
 		k.sendToRetries(ctx, givenMessage)

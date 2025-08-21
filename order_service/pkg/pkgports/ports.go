@@ -1,4 +1,4 @@
-package pkg_ports
+package pkgports
 
 import (
 	"context"
@@ -24,6 +24,8 @@ type Cache[Key comparable, Value any] interface {
 // incoming messages that are passed into commit methods are MessageType (e.g. kafka.Message)
 type Receiver[ValueType, MessageType any] interface {
 	Consume(ctx context.Context) (ValueType, MessageType, error)
+	// OnSuccess must be called on every successful message processing
 	OnSuccess(ctx context.Context, givenMessage MessageType) error
+	// OnFail must be called on every unsuccessful message processing
 	OnFail(ctx context.Context, shouldRetry bool, givenMessage MessageType) error
 }

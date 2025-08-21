@@ -193,13 +193,13 @@
 │       ├───kafka
 │       │       kafka.go
 │       │
-│       ├───linked_list
+│       ├───linkedlist
 │       │       list.go
 │       │
 │       ├───logger
 │       │       logger.go
 │       │
-│       ├───pkg_ports
+│       ├───pkgports
 │       │   │   ports.go
 │       │   │
 │       │   └───adapters

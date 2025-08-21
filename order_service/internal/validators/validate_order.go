@@ -10,6 +10,7 @@ import (
 
 // Vibecoded because there are way too many fields
 
+// ValidateOrder validates a received order, this is fully vibecoded
 func ValidateOrder(order models.Order) error {
 	if err := validateOrderMain(order); err != nil {
 		return err
@@ -39,7 +40,7 @@ func validateOrderMain(order models.Order) error {
 	if strings.TrimSpace(order.Locale) == "" {
 		return fmt.Errorf("locale is required")
 	}
-	if strings.TrimSpace(order.CustomerId) == "" {
+	if strings.TrimSpace(order.CustomerID) == "" {
 		return fmt.Errorf("customer_id is required")
 	}
 	if strings.TrimSpace(order.DeliveryService) == "" {
@@ -48,7 +49,7 @@ func validateOrderMain(order models.Order) error {
 	if strings.TrimSpace(order.ShardKey) == "" {
 		return fmt.Errorf("shardkey is required")
 	}
-	if order.SmId < 0 {
+	if order.SmID < 0 {
 		return fmt.Errorf("sm_id must be non-negative")
 	}
 	if order.DateCreated.IsZero() {
@@ -137,7 +138,7 @@ func validateItems(items []models.OrderItem) error {
 }
 
 func validateItem(item models.OrderItem) error {
-	if item.ChrtId <= 0 {
+	if item.ChrtID <= 0 {
 		return fmt.Errorf("chrt_id must be positive")
 	}
 	if strings.TrimSpace(item.TrackNumber) == "" {
@@ -146,7 +147,7 @@ func validateItem(item models.OrderItem) error {
 	if item.Price < 0 {
 		return fmt.Errorf("price must be non-negative")
 	}
-	if strings.TrimSpace(item.RId) == "" {
+	if strings.TrimSpace(item.RID) == "" {
 		return fmt.Errorf("rid is required")
 	}
 	if strings.TrimSpace(item.Name) == "" {
@@ -161,7 +162,7 @@ func validateItem(item models.OrderItem) error {
 	if item.TotalPrice < 0 {
 		return fmt.Errorf("total_price must be non-negative")
 	}
-	if item.NmId <= 0 {
+	if item.NmID <= 0 {
 		return fmt.Errorf("nm_id must be positive")
 	}
 	if strings.TrimSpace(item.Brand) == "" {

@@ -1,15 +1,19 @@
-package linked_list
+package linkedlist
 
 import (
 	"errors"
 	"sync"
 )
 
+// Node is the generic LinkedList Node type, any ValueType supported
+//
+// Stores the link to the next Node to loop through Nodes
 type Node[ValueType any] struct {
 	value ValueType
 	next  *Node[ValueType]
 }
 
+// LinkedList is a data structure that stores first and last element, each of them has a link on the next one
 type LinkedList[ValueType any] struct {
 	head   *Node[ValueType]
 	tail   *Node[ValueType]
@@ -17,8 +21,10 @@ type LinkedList[ValueType any] struct {
 	mu     sync.Mutex
 }
 
-var InvalidIndexError = errors.New("invalid index")
+// ErrInvalidIndex describes an error when there is anything wrong with given index, e.g. length=0 or index<0
+var ErrInvalidIndex = errors.New("invalid index")
 
+// NewLinkedList creates a new LinkedList with given ValueType, any ValueType is supported
 func NewLinkedList[ValueType any]() LinkedList[ValueType] {
 	return LinkedList[ValueType]{
 		head:   nil,
@@ -29,6 +35,7 @@ func NewLinkedList[ValueType any]() LinkedList[ValueType] {
 
 //region insert
 
+// Insert inserts a value at certain index with right shift
 func (l *LinkedList[ValueType]) Insert(data ValueType, index int) error {
 	l.mu.Lock()
 	defer l.mu.Unlock()
@@ -51,7 +58,7 @@ func (l *LinkedList[ValueType]) Insert(data ValueType, index int) error {
 		}
 		prev.next = newNode
 	} else {
-		return InvalidIndexError
+		return ErrInvalidIndex
 	}
 	if currentLen == 0 {
 		l.tail = newNode
@@ -61,6 +68,7 @@ func (l *LinkedList[ValueType]) Insert(data ValueType, index int) error {
 	return nil
 }
 
+// InsertLast inserts a value after the last Node of the LinkedList
 func (l *LinkedList[ValueType]) InsertLast(data ValueType) error {
 	return l.Insert(data, l.Len())
 }
@@ -93,7 +101,7 @@ func (l *LinkedList[ValueType]) removeNodeAt(index int) error {
 	}
 
 	if index < 0 || index >= l.Len() {
-		return InvalidIndexError
+		return ErrInvalidIndex
 	}
 
 	var prevElem *Node[ValueType]
@@ -113,7 +121,7 @@ func (l *LinkedList[ValueType]) removeFirstNode() error {
 		l.head = l.head.next
 		l.length--
 	} else {
-		return InvalidIndexError
+		return ErrInvalidIndex
 	}
 	return nil
 }
@@ -157,7 +165,7 @@ func (l *LinkedList[ValueType]) GetLast() (ValueType, error) {
 
 func (l *LinkedList[ValueType]) getFirstNode() (*Node[ValueType], error) {
 	if l.Len() == 0 {
-		return nil, InvalidIndexError
+		return nil, ErrInvalidIndex
 	}
 	return l.head, nil
 }
@@ -165,13 +173,13 @@ func (l *LinkedList[ValueType]) getFirstNode() (*Node[ValueType], error) {
 func (l *LinkedList[ValueType]) getNodeAt(index int) (*Node[ValueType], error) {
 	length := l.Len()
 	if length == 0 {
-		return nil, InvalidIndexError
+		return nil, ErrInvalidIndex
 	}
 
 	if index == 0 {
 		return l.getFirstNode()
 	} else if index < 0 || index >= length {
-		return nil, InvalidIndexError
+		return nil, ErrInvalidIndex
 	} else if index == length-1 {
 		return l.getLastNode()
 	}
@@ -185,7 +193,7 @@ func (l *LinkedList[ValueType]) getNodeAt(index int) (*Node[ValueType], error) {
 
 func (l *LinkedList[ValueType]) getLastNode() (*Node[ValueType], error) {
 	if l.Len() == 0 {
-		return nil, InvalidIndexError
+		return nil, ErrInvalidIndex
 	}
 	return l.tail, nil
 }
@@ -201,7 +209,7 @@ func (l *LinkedList[ValueType]) MoveToFirst(from int) error {
 	length := l.Len()
 
 	if from < 0 || from >= length {
-		return InvalidIndexError
+		return ErrInvalidIndex
 	}
 
 	l.mu.Lock()

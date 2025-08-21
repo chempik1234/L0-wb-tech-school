@@ -10,6 +10,7 @@ import (
 	"time"
 )
 
+// Config is kafka only config without certain properties for a service
 type Config struct {
 	Host    string   `yaml:"host" env:"HOST" env-default:"kafka"`
 	Port    uint16   `yaml:"port" env:"PORT" env-default:"9092"`
@@ -24,6 +25,7 @@ type Config struct {
 	ReplicationFactor int `yaml:"replication_factor" env:"REPLICATION_FACTOR" env-default:"1"`
 }
 
+// NewReader creates a new kafka.Reader with given settings
 func NewReader(ctx context.Context, cfg Config, topic, groupID string) *kafka.Reader {
 	l := logger.GetOrCreateLoggerFromCtx(ctx)
 	r := kafka.NewReader(kafka.ReaderConfig{
@@ -43,6 +45,7 @@ func NewReader(ctx context.Context, cfg Config, topic, groupID string) *kafka.Re
 	return r
 }
 
+// NewWriter creates a new kafka.Writer with given settings
 func NewWriter(ctx context.Context, cfg Config, topic string) *kafka.Writer {
 	l := logger.GetOrCreateLoggerFromCtx(ctx)
 	w := &kafka.Writer{
@@ -60,6 +63,7 @@ func NewWriter(ctx context.Context, cfg Config, topic string) *kafka.Writer {
 	return w
 }
 
+// CreateTopicIfNotExists safely creates a topic. Supposed to be called on startup to ensure that topic exists
 func CreateTopicIfNotExists(cfg Config, topic string, numPartitions, replicationFactor int) error {
 	if topic == "" {
 		return errors.New("topic name mustn't be empty")
@@ -91,6 +95,7 @@ func CreateTopicIfNotExists(cfg Config, topic string, numPartitions, replication
 	})
 }
 
+// CreateTopicWithRetry safely creates a topic using CreateTopicIfNotExists, but it gives a few tries
 func CreateTopicWithRetry(cfg Config, topic string, numPartitions, replicationFactor int, retries int) error {
 	var err error
 	for i := 0; i < retries; i++ {
