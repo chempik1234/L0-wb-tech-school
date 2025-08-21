@@ -22,7 +22,7 @@ func NewOrderServiceHttpHandler(service *service.OrderService) *OrderServiceHttp
 
 func (s *OrderServiceHttpHandler) OrderIDGet(ctx context.Context, params api.OrderIDGetParams) (api.OrderIDGetRes, error) {
 	// query service
-	result, err := s.service.OrderIDGet(ctx, params.ID)
+	result, err := s.service.GetOrder(ctx, params.ID)
 
 	if err != nil {
 		if errors.Is(err, custom_errors.ErrOrderNotFound) {

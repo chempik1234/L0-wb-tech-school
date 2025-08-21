@@ -21,7 +21,7 @@ func NewOrderService(storage ports.OrderStorage, cache ports.OrderCache) *OrderS
 	}
 }
 
-func (s *OrderService) OrderIDGet(ctx context.Context, orderUid string) (models.Order, error) {
+func (s *OrderService) GetOrder(ctx context.Context, orderUid string) (models.Order, error) {
 	// step 1. try to check cache first
 	result, found, err := s.cache.Get(ctx, orderUid)
 	if err != nil {
