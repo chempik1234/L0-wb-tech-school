@@ -19,6 +19,9 @@ type Config struct {
 	MaxBytes       int `yaml:"max_bytes" env:"MAX_BYTES" env-default:"1048576"` // 1MB
 	MaxWaitMs      int `yaml:"max_wait_ms" env:"MAX_WAIT_MS" env-default:"500"`
 	CommitInterval int `yaml:"commit_interval_ms" env:"COMMIT_INTERVAL_MS" env-default:"1000"`
+
+	NumPartitions     int `yaml:"num_partitions" env:"NUM_PARTITIONS" env-default:"1"`
+	ReplicationFactor int `yaml:"replication_factor" env:"REPLICATION_FACTOR" env-default:"1"`
 }
 
 func NewReader(ctx context.Context, cfg Config, topic, groupID string) *kafka.Reader {

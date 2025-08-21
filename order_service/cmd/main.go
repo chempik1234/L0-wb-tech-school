@@ -56,7 +56,7 @@ func main() {
 	}
 	logger.GetLoggerFromCtx(ctx).Info(ctx, "connected to postgres")
 
-	err = kafka.CreateTopicIfNotExists(kafkaCfg, serviceCfg.KafkaTopic, 1, 1)
+	err = kafka.CreateTopicIfNotExists(kafkaCfg, serviceCfg.KafkaTopic, cfg.Kafka.NumPartitions, cfg.Kafka.ReplicationFactor)
 	if err != nil {
 		logger.GetLoggerFromCtx(ctx).Fatal(ctx, "failed to create topic kafka", zap.Error(err))
 	}
