@@ -28,34 +28,28 @@ func (o *OrdersStoragePostgres) GetOrderById(ctx context.Context, orderId string
 	var items []models.OrderItem
 	var order models.Order
 
-	// to parallel 2 queries, we launch them separately and check if they produced any non-nil errors
-	// buffer of 2 prevents deadlock
-	errorsChan := make(chan error, 2)
+	eg, _ := errgroup.WithContext(ctx)
 
-	go func() {
+	eg.Go(func() error {
 		var err error
 		order, err = o.getOrderByIdBase(ctx, orderId)
 		if err != nil {
-			errorsChan <- fmt.Errorf("error trying to get order itself: %w", err)
-		} else {
-			errorsChan <- nil
+			return fmt.Errorf("error trying to get order itself: %w", err)
 		}
-	}()
+		return nil
+	})
 
-	go func() {
+	eg.Go(func() error {
 		var err error
 		items, err = o.getOrderItemsById(ctx, orderId)
 		if err != nil {
-			errorsChan <- fmt.Errorf("error trying to order items: %w", err)
-		} else {
-			errorsChan <- nil
+			return fmt.Errorf("error trying to order items: %w", err)
 		}
-	}()
+		return nil
+	})
 
-	for i := 0; i < 2; i++ {
-		if err := <-errorsChan; err != nil {
-			return models.Order{}, err
-		}
+	if err := eg.Wait(); err != nil {
+		return models.Order{}, err
 	}
 
 	order.Items = items
@@ -260,6 +254,7 @@ func (o *OrdersStoragePostgres) GetLastOrders(ctx context.Context, limit int) ([
 
 	for i, items := range itemsList {
 		ordersList[i].Items = items
+		fmt.Println("SOSAAAL!!!!", len(items), items)
 	}
 
 	return ordersList, nil
@@ -374,6 +369,7 @@ func saveDelivery(ctx context.Context, transaction pgx.Tx, orderUid string, deli
 		).
 		Values(
 			orderUid, delivery.Name, delivery.Phone, delivery.Zip, delivery.City, delivery.Address,
+			delivery.Region, delivery.Email,
 		).
 		PlaceholderFormat(squirrel.Dollar).
 		ToSql()
@@ -400,7 +396,7 @@ func saveItems(ctx context.Context, transaction pgx.Tx, orderUid string, items *
 
 	valuesList := make([]string, len(*items))
 	for i, item := range *items {
-		valuesList[i] = fmt.Sprintf("(\"%s\",\"%d\",\"%s\",\"%d\",\"%s\",\"%s\",\"%d\",\"%s\",\"%d\",\"%d\",\"%s\",\"%d\")",
+		valuesList[i] = fmt.Sprintf("('%s',%d,'%s',%d,'%s','%s',%d,'%s',%d,%d,'%s',%d)",
 			orderUid, item.ChrtId, item.TrackNumber, item.Price, item.RId, item.Name, item.Sale, item.Size,
 			item.TotalPrice, item.NmId, item.Brand, item.Status)
 	}
@@ -413,7 +409,7 @@ func saveItems(ctx context.Context, transaction pgx.Tx, orderUid string, items *
 
 	_, err := transaction.Exec(ctx, sql)
 	if err != nil {
-		return fmt.Errorf("couldn't exec save delivery query: %w", err)
+		return fmt.Errorf("couldn't exec save items query: %w", err)
 	}
 	return err
 }

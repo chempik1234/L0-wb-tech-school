@@ -130,5 +130,6 @@ func (k *KafkaReceiver[Value]) sendToRetries(ctx context.Context, givenMessage *
 
 func (k *KafkaReceiver[Value]) sendToDLQ(ctx context.Context, givenMessage *KafkaMessage[Value]) {
 	// TODO: maybe real DLQ?
-	logger.GetLoggerFromCtx(ctx).Info(ctx, "message sent to DLQ", zap.Any("message", givenMessage.Message))
+	logger.GetLoggerFromCtx(ctx).Info(ctx, "message sent to DLQ", zap.Any("message", givenMessage.Message),
+		zap.Any("value", givenMessage.Value))
 }

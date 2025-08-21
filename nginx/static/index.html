@@ -1,1 +1,659 @@
-<h1>Hi!</h1>
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Order Service Dashboard</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            color: white;
+        }
+
+        .header h1 {
+            font-size: 2.5rem;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
+        }
+
+        .header p {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .dashboard {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 30px;
+        }
+
+        @media (max-width: 768px) {
+            .dashboard {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 25px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .card h2 {
+            color: #a73afd;
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+            border-bottom: 2px solid #a73afd;
+            padding-bottom: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 8px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        input[type="text"],
+        textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s ease;
+        }
+
+        input[type="text"]:focus,
+        textarea:focus {
+            outline: none;
+            border-color: #a73afd;
+        }
+
+        textarea {
+            min-height: 150px;
+            resize: vertical;
+            font-family: 'Courier New', monospace;
+        }
+
+        button {
+            background: #a73afd;
+            color: white;
+            border: none;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        button:hover {
+            background: #8c2bd9;
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(167, 58, 253, 0.4);
+        }
+
+        .response {
+            margin-top: 25px;
+            padding: 20px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            border-left: 4px solid #a73afd;
+        }
+
+        .response h3 {
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .response-time {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 10px;
+        }
+
+        .error {
+            border-left-color: #dc3545;
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .success {
+            border-left-color: #28a745;
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .loading {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #a73afd;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        /* Стили для отображения заказа */
+        .order-details {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        .order-section {
+            margin-bottom: 20px;
+            padding: 15px;
+            background: white;
+            border-radius: 8px;
+            border-left: 4px solid #a73afd;
+        }
+
+        .order-section h4 {
+            color: #a73afd;
+            margin-bottom: 10px;
+            font-size: 1.2rem;
+        }
+
+        .detail-grid {
+            display: grid;
+            grid-template-columns: 150px 1fr;
+            gap: 8px 15px;
+            margin-bottom: 10px;
+        }
+
+        .detail-label {
+            font-weight: 600;
+            color: #555;
+            text-align: right;
+        }
+
+        .detail-value {
+            color: #333;
+            word-break: break-word;
+        }
+
+        .items-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 10px;
+        }
+
+        .items-table th {
+            background: #a73afd;
+            color: white;
+            padding: 10px;
+            text-align: left;
+        }
+
+        .items-table td {
+            padding: 10px;
+            border-bottom: 1px solid #ddd;
+        }
+
+        .items-table tr:nth-child(even) {
+            background: #f8f9fa;
+        }
+
+        .items-table tr:hover {
+            background: #e9ecef;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .badge-success {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .badge-warning {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .badge-info {
+            background: #d1ecf1;
+            color: #0c5460;
+        }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>Order Service Dashboard</h1>
+        <p>Управление заказами и симуляция данных</p>
+    </div>
+
+    <div class="dashboard">
+        <!-- Блок поиска заказа -->
+        <div class="card">
+            <h2>Поиск заказа</h2>
+            <div class="form-group">
+                <label for="orderUid">Order UID:</label>
+                <input type="text" id="orderUid" placeholder="Введите Order UID (например: b563feb7b2b84b6test)">
+            </div>
+            <button onclick="getOrder()" id="getOrderBtn">
+                Найти заказ
+            </button>
+
+            <div class="response" id="orderResponse" style="display: none;">
+                <h3>Результат:</h3>
+                <div class="response-time" id="responseTime"></div>
+                <div class="order-details" id="orderDetails"></div>
+            </div>
+        </div>
+
+        <!-- Блок создания заказа -->
+        <div class="card">
+            <h2>Создание заказа</h2>
+            <div class="form-group">
+                <label for="orderJson">JSON заказа:</label>
+                <textarea id="orderJsonInput" placeholder='Введите JSON заказа (пример см. ниже)'></textarea>
+            </div>
+            <button onclick="createOrder()" id="createOrderBtn">
+                Создать заказ
+            </button>
+
+            <div class="response" id="createResponse" style="display: none;">
+                <h3>Результат:</h3>
+                <div class="json-response" id="createJson"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Пример JSON -->
+    <div class="card" style="margin-top: 30px;">
+        <h2>Пример JSON для создания заказа</h2>
+        <pre class="json-response">{
+  "order_uid": "b563feb7b2b84b6test",
+  "track_number": "WBILMTESTTRACK",
+  "entry": "WBIL",
+  "delivery": {
+    "name": "Test Testov",
+    "phone": "+9720000000",
+    "zip": "2639809",
+    "city": "Kiryat Mozkin",
+    "address": "Ploshad Mira 15",
+    "region": "Kraiot",
+    "email": "test@gmail.com"
+  },
+  "payment": {
+    "transaction": "b563feb7b2b84b6test",
+    "request_id": "",
+    "currency": "USD",
+    "provider": "wbpay",
+    "amount": 1817,
+    "payment_dt": 1637907727,
+    "bank": "alpha",
+    "delivery_cost": 1500,
+    "goods_total": 317,
+    "custom_fee": 0
+  },
+  "items": [
+    {
+      "chrt_id": 9934930,
+      "track_number": "WBILMTESTTRACK",
+      "price": 453,
+      "rid": "ab4219087a764ae0btest",
+      "name": "Mascaras",
+      "sale": 30,
+      "size": "0",
+      "total_price": 317,
+      "nm_id": 2389212,
+      "brand": "Vivienne Sabo",
+      "status": 202
+    }
+  ],
+  "locale": "en",
+  "internal_signature": "",
+  "customer_id": "test",
+  "delivery_service": "meest",
+  "shardkey": "9",
+  "sm_id": 99,
+  "date_created": "2021-11-26T06:22:19Z",
+  "oof_shard": "1"
+}</pre>
+    </div>
+</div>
+
+<script>
+    const API_BASE_URL = 'http://localhost';
+
+    function getOrder() {
+        const orderUid = document.getElementById('orderUid').value.trim();
+        const btn = document.getElementById('getOrderBtn');
+        const responseDiv = document.getElementById('orderResponse');
+        const detailsDiv = document.getElementById('orderDetails');
+        const timeDiv = document.getElementById('responseTime');
+
+        if (!orderUid) {
+            showError(responseDiv, detailsDiv, 'Please enter Order UID');
+            return;
+        }
+
+        btn.innerHTML = '<div class="loading"></div>';
+        btn.disabled = true;
+        responseDiv.style.display = 'block';
+
+        const startTime = performance.now();
+
+        fetch(`${API_BASE_URL}/api/order/${orderUid}`)
+            .then(response => {
+                const endTime = performance.now();
+                const responseTime = (endTime - startTime).toFixed(2);
+                timeDiv.textContent = `Время ответа: ${responseTime} мс`;
+
+                if (!response.ok) {
+                    return response.json().then(err => {
+                        throw new Error(err.message || `HTTP error! status: ${response.status}`);
+                    });
+                }
+                return response.json();
+            })
+            .then(data => {
+                detailsDiv.innerHTML = renderOrderDetails(data);
+                responseDiv.className = 'response success';
+            })
+            .catch(error => {
+                showError(responseDiv, detailsDiv, error.message);
+            })
+            .finally(() => {
+                btn.innerHTML = 'Найти заказ';
+                btn.disabled = false;
+            });
+    }
+
+    function renderOrderDetails(order) {
+        return `
+                <div class="order-section">
+                    <h4>📦 Основная информация</h4>
+                    <div class="detail-grid">
+                        <span class="detail-label">Order UID:</span>
+                        <span class="detail-value">${order.order_uid}</span>
+
+                        <span class="detail-label">Track Number:</span>
+                        <span class="detail-value">${order.track_number}</span>
+
+                        <span class="detail-label">Entry:</span>
+                        <span class="detail-value">${order.entry}</span>
+
+                        <span class="detail-label">Customer ID:</span>
+                        <span class="detail-value">${order.customer_id}</span>
+
+                        <span class="detail-label">Locale:</span>
+                        <span class="detail-value">${order.locale}</span>
+
+                        <span class="detail-label">Delivery Service:</span>
+                        <span class="detail-value">${order.delivery_service}</span>
+
+                        <span class="detail-label">Date Created:</span>
+                        <span class="detail-value">${new Date(order.date_created).toLocaleString()}</span>
+
+                        <span class="detail-label">Shard Key:</span>
+                        <span class="detail-value">${order.shardkey}</span>
+
+                        <span class="detail-label">SM ID:</span>
+                        <span class="detail-value">${order.sm_id}</span>
+
+                        <span class="detail-label">OOF Shard:</span>
+                        <span class="detail-value">${order.oof_shard}</span>
+                    </div>
+                </div>
+
+                <div class="order-section">
+                    <h4>🚚 Доставка</h4>
+                    <div class="detail-grid">
+                        <span class="detail-label">Name:</span>
+                        <span class="detail-value">${order.delivery.name}</span>
+
+                        <span class="detail-label">Phone:</span>
+                        <span class="detail-value">${order.delivery.phone}</span>
+
+                        <span class="detail-label">Email:</span>
+                        <span class="detail-value">${order.delivery.email}</span>
+
+                        <span class="detail-label">Address:</span>
+                        <span class="detail-value">${order.delivery.address}, ${order.delivery.city}</span>
+
+                        <span class="detail-label">Region:</span>
+                        <span class="detail-value">${order.delivery.region}</span>
+
+                        <span class="detail-label">ZIP:</span>
+                        <span class="detail-value">${order.delivery.zip}</span>
+                    </div>
+                </div>
+
+                <div class="order-section">
+                    <h4>💳 Оплата</h4>
+                    <div class="detail-grid">
+                        <span class="detail-label">Transaction:</span>
+                        <span class="detail-value">${order.payment.transaction}</span>
+
+                        <span class="detail-label">Provider:</span>
+                        <span class="detail-value">${order.payment.provider}</span>
+
+                        <span class="detail-label">Currency:</span>
+                        <span class="detail-value">${order.payment.currency}</span>
+
+                        <span class="detail-label">Amount:</span>
+                        <span class="detail-value">${order.payment.amount.toLocaleString()} ₽</span>
+
+                        <span class="detail-label">Bank:</span>
+                        <span class="detail-value">${order.payment.bank}</span>
+
+                        <span class="detail-label">Delivery Cost:</span>
+                        <span class="detail-value">${order.payment.delivery_cost.toLocaleString()} ₽</span>
+
+                        <span class="detail-label">Goods Total:</span>
+                        <span class="detail-value">${order.payment.goods_total.toLocaleString()} ₽</span>
+
+                        <span class="detail-label">Custom Fee:</span>
+                        <span class="detail-value">${order.payment.custom_fee.toLocaleString()} ₽</span>
+
+                        <span class="detail-label">Payment Date:</span>
+                        <span class="detail-value">${new Date(order.payment.payment_dt * 1000).toLocaleString()}</span>
+                    </div>
+                </div>
+
+                <div class="order-section">
+                    <h4>🛍️ Товары (${order.items.length})</h4>
+                    <table class="items-table">
+                        <thead>
+                            <tr>
+                                <th>Наименование</th>
+                                <th>Бренд</th>
+                                <th>Цена</th>
+                                <th>Скидка</th>
+                                <th>Статус</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            ${order.items.map(item => `
+                                <tr>
+                                    <td><strong>${item.name}</strong><br>
+                                        <small>Size: ${item.size} | ID: ${item.nm_id}</small>
+                                    </td>
+                                    <td>${item.brand}</td>
+                                    <td>${item.price.toLocaleString()} ₽<br>
+                                        <small>Total: ${item.total_price.toLocaleString()} ₽</small>
+                                    </td>
+                                    <td><span class="badge badge-info">${item.sale}%</span></td>
+                                    <td><span class="badge ${getStatusBadgeClass(item.status)}">${item.status}</span></td>
+                                </tr>
+                            `).join('')}
+                        </tbody>
+                    </table>
+                </div>
+            `;
+    }
+
+    function getStatusText(status) {
+        const statusMap = {
+            202: 'Accepted',
+            200: 'OK',
+            400: 'Bad Request',
+            404: 'Not Found',
+            500: 'Internal Error'
+        };
+        return statusMap[status] || `Status ${status}`;
+    }
+
+    function getStatusBadgeClass(status) {
+        if (status >= 200 && status < 300) return 'badge-success';
+        if (status >= 400 && status < 500) return 'badge-warning';
+        return 'badge-info';
+    }
+
+    function createOrder() {
+        const jsonInput = document.getElementById('orderJsonInput').value.trim();
+        const btn = document.getElementById('createOrderBtn');
+        const responseDiv = document.getElementById('createResponse');
+        const jsonDiv = document.getElementById('createJson');
+
+        if (!jsonInput) {
+            showError(responseDiv, jsonDiv, 'Please enter JSON data');
+            return;
+        }
+
+        let jsonData;
+        try {
+            jsonData = JSON.parse(jsonInput);
+        } catch (e) {
+            showError(responseDiv, jsonDiv, 'Invalid JSON format');
+            return;
+        }
+
+        btn.innerHTML = '<div class="loading"></div>';
+        btn.disabled = true;
+        responseDiv.style.display = 'block';
+
+        fetch(`${API_BASE_URL}/simulator/create`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(jsonData)
+        })
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(err => {
+                        throw new Error(err.message || `HTTP error! status: ${response.status}`);
+                    });
+                }
+                return response.json();
+            })
+            .then(data => {
+                showSuccess(responseDiv, jsonDiv, JSON.stringify(data, null, 2));
+            })
+            .catch(error => {
+                showError(responseDiv, jsonDiv, error.message);
+            })
+            .finally(() => {
+                btn.innerHTML = 'Создать заказ';
+                btn.disabled = false;
+            });
+    }
+
+    function showSuccess(container, element, message) {
+        container.className = 'response success';
+        element.textContent = message;
+        element.style.color = '#155724';
+    }
+
+    function showError(container, element, message) {
+        container.className = 'response error';
+        element.textContent = message;
+        element.style.color = '#721c24';
+    }
+
+    // Автозаполнение примера по клику
+    document.getElementById('orderJsonInput').addEventListener('click', function() {
+        if (!this.value.trim()) {
+            this.value = `{
+  "order_uid": "b563feb7b2b84b6test",
+  "track_number": "WBILMTESTTRACK",
+  "entry": "WBIL",
+  "delivery": {
+    "name": "Test Testov",
+    "phone": "+9720000000",
+    "zip": "2639809",
+    "city": "Kiryat Mozkin",
+    "address": "Ploshad Mira 15",
+    "region": "Kraiot",
+    "email": "test@gmail.com"
+  },
+  "payment": {
+    "transaction": "b563feb7b2b84b6test",
+    "request_id": "",
+    "currency": "USD",
+    "provider": "wbpay",
+    "amount": 1817,
+    "payment_dt": 1637907727,
+    "bank": "alpha",
+    "delivery_cost": 1500,
+    "goods_total": 317,
+    "custom_fee": 0
+  },
+  "items": [
+    {
+      "chrt_id": 9934930,
+      "track_number": "WBILMTESTTRACK",
+      "price": 453,
+      "rid": "ab4219087a764ae0btest",
+      "name": "Mascaras",
+      "sale": 30,
+      "size": "0",
+      "total_price": 317,
+      "nm_id": 2389212,
+      "brand": "Vivienne Sabo",
+      "status": 202
+    }
+  ],
+  "locale": "en",
+  "internal_signature": "",
+  "customer_id": "test",
+  "delivery_service": "meest",
+  "shardkey": "9",
+  "sm_id": 99,
+  "date_created": "2021-11-26T06:22:19Z",
+  "oof_shard": "1"
+}`;
+        }
+    });
+</script>
+</body>
+</html>

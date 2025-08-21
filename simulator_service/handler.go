@@ -32,12 +32,13 @@ func NewCreateOrderHandler(writer *kafka.Writer, key []byte) http.HandlerFunc {
 			return
 		}
 
+		w.Write([]byte("{\"message\": \"ok\"}"))
 		w.WriteHeader(http.StatusAccepted)
 	}
 }
 
 func NewMux(writer *kafka.Writer, key []byte) *http.ServeMux {
 	mux := http.NewServeMux()
-	mux.HandleFunc("/", NewCreateOrderHandler(writer, key))
+	mux.HandleFunc("/create", NewCreateOrderHandler(writer, key))
 	return mux
 }

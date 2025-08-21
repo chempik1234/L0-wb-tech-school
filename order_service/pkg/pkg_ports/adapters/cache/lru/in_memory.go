@@ -3,7 +3,9 @@ package lru
 import (
 	"context"
 	"fmt"
+	"go.uber.org/zap"
 	"order_service/pkg/linked_list"
+	"order_service/pkg/logger"
 	"sync"
 )
 
@@ -52,6 +54,8 @@ func (c *CacheLRUInMemory[Key, Value]) Get(ctx context.Context, key Key) (Value,
 		if err != nil {
 			return *new(Value), false, fmt.Errorf("error while putting element to top: %w", err)
 		}
+	} else {
+		logger.GetOrCreateLoggerFromCtx(ctx).Info(ctx, "in-memory LRU cache miss", zap.Any("key", key))
 	}
 
 	return value.Value, ok, nil

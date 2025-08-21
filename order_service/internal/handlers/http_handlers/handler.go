@@ -1,12 +1,14 @@
-package handlers
+package http_handlers
 
 import (
 	"context"
 	"errors"
 	"fmt"
+	"go.uber.org/zap"
 	"order_service/internal/api"
 	"order_service/internal/custom_errors"
 	"order_service/internal/service"
+	"order_service/pkg/logger"
 )
 
 // OrderServiceHttpHandler is a wrapper around service.OrderService that implements generated openapi handler
@@ -21,8 +23,10 @@ func NewOrderServiceHttpHandler(service *service.OrderService) *OrderServiceHttp
 }
 
 func (s *OrderServiceHttpHandler) OrderIDGet(ctx context.Context, params api.OrderIDGetParams) (api.OrderIDGetRes, error) {
+	orderUid := params.ID
+
 	// query service
-	result, err := s.service.GetOrder(ctx, params.ID)
+	result, err := s.service.GetOrder(ctx, orderUid)
 
 	if err != nil {
 		if errors.Is(err, custom_errors.ErrOrderNotFound) {
@@ -35,6 +39,23 @@ func (s *OrderServiceHttpHandler) OrderIDGet(ctx context.Context, params api.Ord
 		return &api.ErrorResponse{
 			Message: fmt.Errorf("couldn't get order: %w", err).Error(),
 		}, nil
+	}
+
+	items := make([]api.OrderItem, len(result.Items))
+	for i, item := range result.Items {
+		items[i] = api.OrderItem{
+			ChrtID:      int64(item.ChrtId),
+			TrackNumber: item.TrackNumber,
+			Price:       item.Price,
+			Rid:         item.RId,
+			Name:        item.Name,
+			Sale:        item.Sale,
+			Size:        item.Size,
+			TotalPrice:  item.TotalPrice,
+			NmID:        int64(item.NmId),
+			Brand:       item.Brand,
+			Status:      item.Status,
+		}
 	}
 
 	response := api.OrderResponse{
@@ -65,7 +86,7 @@ func (s *OrderServiceHttpHandler) OrderIDGet(ctx context.Context, params api.Ord
 			GoodsTotal:   result.Payment.GoodsTotal,
 			CustomFee:    result.Payment.CustomFee,
 		},
-		Items:  nil,
+		Items:  items,
 		Locale: result.Locale,
 		InternalSignature: api.OptString{
 			Set:   true,
@@ -78,6 +99,9 @@ func (s *OrderServiceHttpHandler) OrderIDGet(ctx context.Context, params api.Ord
 		DateCreated:     result.DateCreated,
 		OofShard:        result.OofShard,
 	}
+
+	logger.GetOrCreateLoggerFromCtx(ctx).Info(ctx, "read order by id", zap.String("order_uid", orderUid))
+
 	return &response, nil
 }
 
