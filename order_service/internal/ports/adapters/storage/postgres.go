@@ -141,7 +141,7 @@ func (o *OrdersStoragePostgres) getLastOrdersBase(ctx context.Context, limit int
 		Join("order_service.deliveries d ON d.order_id = o.order_uid").
 		Join("order_service.payments p ON p.order_id = o.order_uid").
 		Join("order_service.order_items i ON i.order_id = o.order_uid").
-		OrderBy("o.created_at").
+		OrderBy("o.created_at DESC").
 		Limit(uint64(limit)).
 		PlaceholderFormat(squirrel.Dollar).
 		ToSql()
