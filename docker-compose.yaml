@@ -26,6 +26,7 @@ services:
     build:
       context: ./order_service
       dockerfile: ../build/universal_service/Dockerfile
+    restart: unless-stopped
     ports:
       - "${ORDER_SERVICE_HTTP_PORT}:${ORDER_SERVICE_HTTP_PORT}"
     depends_on:
@@ -40,6 +41,7 @@ services:
     build:
       context: ./simulator_service
       dockerfile: ../build/universal_service/Dockerfile
+    restart: unless-stopped
     ports:
       - "${SIMULATOR_SERVICE_HTTP_PORT}:${SIMULATOR_SERVICE_HTTP_PORT}"
     depends_on:
@@ -54,6 +56,7 @@ services:
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
+    restart: unless-stopped
     hostname: ${ZOOKEEPER_HOST}
     expose:
       - ${ZOOKEEPER_PORT}
@@ -66,6 +69,7 @@ services:
     container_name: kafka
     depends_on:
       - zookeeper
+    restart: unless-stopped
     hostname: ${KAFKA_HOST}
     expose:
       - ${KAFKA_PORT}
@@ -93,6 +97,7 @@ services:
     image: nginx:latest
     ports:
       - "80:80"
+    restart: unless-stopped
     volumes:
       - ./nginx/conf.d:/etc/nginx/conf.d
       - ./nginx/static:/var/static
