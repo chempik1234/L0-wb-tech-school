@@ -16,7 +16,7 @@ services:
     env_file:
       - ./config/.env
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready", "-d", "order_service" ]
+      test: [ "CMD-SHELL", "pg_isready", "-d", "order_service", "-U", "order_service" ]
       interval: 10s
       timeout: 30s
       retries: 5
