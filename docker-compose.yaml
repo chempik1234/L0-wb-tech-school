@@ -1,12 +1,6 @@
 services:
   postgres:
-    build:
-      dockerfile: ../build/postgres/Dockerfile
-      context: ./db
-      args:
-        POSTGRES_DB: ${POSTGRES_DB}
-        POSTGRES_USER: ${POSTGRES_USER}
-        POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    image: postgres:17-alpine
     restart: always
     user: postgres
     ports:
@@ -16,7 +10,9 @@ services:
     env_file:
       - ./config/.env
     healthcheck:
-      test: [ "CMD-SHELL", "pg_isready", "-d", "order_service", "-U", "order_service" ]
+      # DON'T WRITE IT "pg_isready", "-d", ...
+      # It will stop working
+      test: [ "CMD-SHELL", "pg_isready -d order_service -U order_service" ]
       interval: 10s
       timeout: 30s
       retries: 5
