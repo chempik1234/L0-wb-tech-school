@@ -86,6 +86,8 @@ func (s *OrderService) SaveOrder(ctx context.Context, order models.Order) error 
 		}
 	}()
 
+	logger.GetLoggerFromCtx(ctx).Info(ctx, "saved order", zap.String("id", order.OrderUID))
+
 	return nil
 }
 
