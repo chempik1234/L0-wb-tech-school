@@ -81,7 +81,7 @@ func (c *CacheLRUInMemory[Key, Value]) Get(ctx context.Context, key Key) (Value,
 				ErrUnexpectedLinkedListBehaviour, key)
 		}
 	} else {
-		logger.GetOrCreateLoggerFromCtx(ctx).Info(ctx, "in-memory LRU cache miss", zap.Any("key", key))
+		logger.GetOrCreateLoggerFromCtx(ctx).Debug(ctx, "in-memory LRU cache miss", zap.Any("key", key))
 	}
 
 	return value, ok, nil
@@ -127,7 +127,7 @@ func (c *CacheLRUInMemory[Key, Value]) Set(ctx context.Context, key Key, value V
 				return fmt.Errorf("error while removing last key index: %w", err)
 			}
 
-			logger.GetLoggerFromCtx(ctx).Info(ctx, "cache overflow, erased a value",
+			logger.GetLoggerFromCtx(ctx).Debug(ctx, "cache overflow, erased a value",
 				zap.Any("key", keyToDelete), zap.Int("length", c.keysList.Len()),
 				zap.Int("capacity", c.GetCapacity()))
 
