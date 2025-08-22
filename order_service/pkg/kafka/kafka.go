@@ -45,24 +45,6 @@ func NewReader(ctx context.Context, cfg Config, topic, groupID string) *kafka.Re
 	return r
 }
 
-// NewWriter creates a new kafka.Writer with given settings
-func NewWriter(ctx context.Context, cfg Config, topic string) *kafka.Writer {
-	l := logger.GetOrCreateLoggerFromCtx(ctx)
-	w := &kafka.Writer{
-		Addr:         kafka.TCP(cfg.Brokers...),
-		Topic:        topic,
-		RequiredAcks: kafka.RequireAll,
-		Balancer:     &kafka.LeastBytes{},
-		Async:        false,
-	}
-
-	l.Info(ctx, "created Kafka writer",
-		zap.Strings("brokers", cfg.Brokers),
-		zap.String("topic", topic),
-	)
-	return w
-}
-
 // CreateTopicIfNotExists safely creates a topic. Supposed to be called on startup to ensure that topic exists
 func CreateTopicIfNotExists(cfg Config, topic string, numPartitions, replicationFactor int) error {
 	if topic == "" {
