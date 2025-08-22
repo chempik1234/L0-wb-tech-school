@@ -19,3 +19,10 @@ lint_orders:
 	cd order_service && \
 		golint ./... && \
 		golangci-lint run ./...
+
+test:
+	cd integration_tests && \
+		docker compose --env-file ./.env up -d order_service simulator_service nginx && \
+		docker compose --env-file ./.env up --build e2e_test
+	cd integration_tests && \
+		docker compose --env-file ./.env down

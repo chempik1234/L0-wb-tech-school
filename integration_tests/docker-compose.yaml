@@ -5,13 +5,9 @@ services:
     user: postgres
     ports:
       - "${POSTGRES_PORT}:${POSTGRES_PORT}"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
     env_file:
-      - ./config/.env
+      - ./.env
     healthcheck:
-      # DON'T WRITE IT "pg_isready", "-d", ...
-      # It will stop working
       test: [ "CMD-SHELL", "pg_isready -d order_service -U order_service" ]
       interval: 10s
       timeout: 30s
@@ -20,7 +16,7 @@ services:
 
   order_service:
     build:
-      context: ./order_service
+      context: ../order_service
       dockerfile: ../build/universal_service/Dockerfile
     restart: unless-stopped
     ports:
@@ -31,11 +27,11 @@ services:
       kafka:
         condition: service_healthy
     env_file:
-      - config/.env
+      - ./.env
 
   simulator_service:
     build:
-      context: ./simulator_service
+      context: ../simulator_service
       dockerfile: ../build/universal_service/Dockerfile
     restart: unless-stopped
     ports:
@@ -44,11 +40,10 @@ services:
       kafka:
         condition: service_healthy
     env_file:
-      - config/.env
+      - ./.env
 
   zookeeper:
     image: confluentinc/cp-zookeeper:7.5.0
-    container_name: zookeeper
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
       ZOOKEEPER_TICK_TIME: 2000
@@ -62,7 +57,6 @@ services:
 
   kafka:
     image: confluentinc/cp-kafka:7.5.0
-    container_name: kafka
     depends_on:
       - zookeeper
     restart: unless-stopped
@@ -95,18 +89,28 @@ services:
       - "80:80"
     restart: unless-stopped
     volumes:
-      - ./nginx/conf.d:/etc/nginx/conf.d
-      - ./nginx/static:/var/static
+      - ../nginx/conf.d:/etc/nginx/conf.d
+      - ../nginx/static:/var/static
     depends_on:
       order_service:
         condition: service_started
       simulator_service:
         condition: service_started
 
+  e2e_test:
+    build:
+      context: ./e2e_test
+      dockerfile: ../../build/test_service/Dockerfile
+    depends_on:
+      order_service:
+        condition: service_started
+    env_file:
+      - ./.env
+    network_mode: host
+
 volumes:
   go-mod-cache:
   go-build-cache:
-  postgres_data:
   kafka-data:
   kafka-logs:
   zookeeper-data:
