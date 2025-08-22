@@ -53,9 +53,6 @@ services:
     hostname: ${ZOOKEEPER_HOST}
     expose:
       - ${ZOOKEEPER_PORT}
-    volumes:
-      - zookeeper-data:/var/lib/zookeeper/data
-      - zookeeper-log:/var/lib/zookeeper/log
 
   kafka:
     image: confluentinc/cp-kafka:7.5.0
@@ -76,9 +73,6 @@ services:
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
       KAFKA_TRANSACTION_STATE_LOG_MIN_ISR: 1
       KAFKA_TRANSACTION_STATE_LOG_REPLICATION_FACTOR: 1
-    volumes:
-      - kafka-data:/var/lib/kafka/data
-      - kafka-logs:/var/log/kafka
     healthcheck:
       test: [ "CMD", "kafka-topics", "--bootstrap-server", "kafka:9092", "--list" ]
       interval: 10s
@@ -109,11 +103,3 @@ services:
     env_file:
       - ./.env
     network_mode: host
-
-volumes:
-  go-mod-cache:
-  go-build-cache:
-  kafka-data:
-  kafka-logs:
-  zookeeper-data:
-  zookeeper-log:
