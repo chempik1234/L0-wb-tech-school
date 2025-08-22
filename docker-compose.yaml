@@ -24,7 +24,8 @@ services:
       dockerfile: ../build/universal_service/Dockerfile
     restart: unless-stopped
     ports:
-      - "${ORDER_SERVICE_HTTP_PORT}:${ORDER_SERVICE_HTTP_PORT}"
+      - "${ORDER_SERVICE_HTTP_PORT}"
+    scale: 3
     depends_on:
       postgres:
         condition: service_healthy
@@ -39,7 +40,8 @@ services:
       dockerfile: ../build/universal_service/Dockerfile
     restart: unless-stopped
     ports:
-      - "${SIMULATOR_SERVICE_HTTP_PORT}:${SIMULATOR_SERVICE_HTTP_PORT}"
+      - "${SIMULATOR_SERVICE_HTTP_PORT}"
+    scale: 2
     depends_on:
       kafka:
         condition: service_healthy
