@@ -4,7 +4,7 @@ Postgres is used as a **single container** with a custom Dockerfile and an alpin
 
 ### SQL Scripts
 
-Postgres has an `init.sql` that creates 1 database and 1 user with permissions to that database.
+Postgres automatically creates 1 database and 1 user with permissions to that database.
 
 Names are set in .env: `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`
 

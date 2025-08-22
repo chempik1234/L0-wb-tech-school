@@ -15,6 +15,7 @@
 * [Архитектура](#архитектура)
 * [Решения](#решения)
 * [Структура проекта](#структура-проекта)
+* [Валидация](#валидация)
 
 ## Запуск
 
@@ -68,24 +69,25 @@
    отдельный запрос (-ы). Без ORM, миграции хранятся в папке с сервисом. **Из-за этого ./db/ должна быть,
    даже если БД не используется**
 7. **Симуляция заказов** - есть отдельный сервис-симулятор, который написан непонятно как, игнорит мелкие ошибки
-и никак не структурирован. Он выполняет одну единственную функцию: отправка json в Kafka.
+   и никак не структурирован. Он выполняет одну единственную функцию: отправка json в Kafka.
 8. **Web** - создание и чтение заказов, пример json. Генерация рандомных json (навайбкожено).
 
 ## Структура проекта
 
-| Папка              | Значение                                                         |
-|--------------------|------------------------------------------------------------------|
- **/api**           | папка со спецификациями                                          
- **/build**         | папка с Dockerfile                                               
- **/config**        | папка с .env (конфиги)                                           
- **/db**            | папка с файлами для инициализации БД (используется в Dockerfile) 
- **/docs**          | мелкая доп. документация                                         
- **/nginx**         | файлы nginx: **статика, конфиг**; используется Docker Volume     
- **/order_service** | **основной сервис**                                              
- **/simulator**     | простейший, просто braindead **симулятор сообщений** из Kafka    
+| Папка              | Значение                                                      |
+|--------------------|---------------------------------------------------------------|
+ **/api**           | папка со спецификациями                                       |
+ **/build**         | папка с Dockerfile                                            |
+ **/config**        | папка с .env (конфиги)                                        |
+ **/docs**          | мелкая доп. документация                                      |
+ **/nginx**         | файлы nginx: **статика, конфиг**; используется Docker Volume  |
+ **/order_service** | **основной сервис**                                           |
+ **/simulator**     | простейший, просто braindead **симулятор сообщений** из Kafka |
 
 ```
+C:.
 │   .gitignore
+│   architecture.png
 │   docker-compose.yaml
 │   Makefile
 │   README.md
@@ -95,9 +97,6 @@
 │           openapi.yml
 │
 ├───build
-│   ├───postgres
-│   │       Dockerfile
-│   │
 │   └───universal_service
 │           Dockerfile
 │
@@ -105,12 +104,9 @@
 │       .env
 │       .env.example
 │
-├───db
-│       env_var.sh
-│       init.sql
-│
 ├───docs
 │       postgres.md
+│       validation.md
 │
 ├───nginx
 │   ├───conf.d
@@ -161,7 +157,7 @@
 │   │   │       storage_errors.go
 │   │   │
 │   │   ├───handlers
-│   │   │   └───http_handlers
+│   │   │   └───httphandlers
 │   │   │           handler.go
 │   │   │           middlewares.go
 │   │   │
@@ -189,32 +185,32 @@
 │   │   └───validators
 │   │           validate_order.go
 │   │
-│   └───pkg
-│       ├───kafka
-│       │       kafka.go
-│       │
-│       ├───linkedlist
-│       │       list.go
-│       │
-│       ├───logger
-│       │       logger.go
-│       │
-│       ├───pkgports
-│       │   │   ports.go
-│       │   │
-│       │   └───adapters
-│       │       ├───cache
-│       │       │   └───lru
-│       │       │           in_memory.go
-│       │       │
-│       │       └───receiver
-│       │               kafka.go
-│       │
-│       ├───postgres
-│       │       postgres.go
-│       │
-│       └───redis
-│               redis.go
+│   ├───pkg
+│   │   ├───kafka
+│   │   │       kafka.go
+│   │   │
+│   │   ├───linkedlist
+│   │   │       list.go
+│   │   │
+│   │   ├───logger
+│   │   │       logger.go
+│   │   │
+│   │   ├───pkgports
+│   │   │   │   ports.go
+│   │   │   │
+│   │   │   └───adapters
+│   │   │       ├───cache
+│   │   │       │   └───lru
+│   │   │       │           in_memory.go
+│   │   │       │
+│   │   │       └───receiver
+│   │   │               kafka.go
+│   │   │
+│   │   └───postgres
+│   │           postgres.go
+│   │
+│   └───tests
+│           lru_test.go
 │
 └───simulator_service
     │   config.go
@@ -227,5 +223,8 @@
     │       main.go
     │
     └───db
-
 ```
+
+### Валидация
+
+См. docs/validation.md
