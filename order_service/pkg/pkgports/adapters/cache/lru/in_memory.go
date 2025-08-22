@@ -67,10 +67,9 @@ func (c *CacheLRUInMemory[Key, Value]) Get(ctx context.Context, key Key) (Value,
 			if errors.Is(err, linkedlist.ErrEmptyList) {
 				return *new(Value), false, fmt.Errorf("%w: key is stored in data, but keys linked list is empty",
 					ErrUnexpectedLinkedListBehaviour)
-			} else {
-				// not going to occur
-				return value, false, fmt.Errorf("error getting index of read key: %w", err)
 			}
+			// not going to occur
+			return value, false, fmt.Errorf("error getting index of read key: %w", err)
 		}
 		if index != -1 {
 			err = c.keysList.MoveToFirst(index)
@@ -139,14 +138,19 @@ func (c *CacheLRUInMemory[Key, Value]) Set(ctx context.Context, key Key, value V
 	return nil
 }
 
-func (c *CacheLRUInMemory[Key, Value]) GetKeysOrder() []Key {
+func (c *CacheLRUInMemory[_, _]) GetKeysAmount() int {
+	return c.keysList.Len()
+}
+
+// GetKeys returns them in order from the Most to the least used
+func (c *CacheLRUInMemory[Key, _]) GetKeys() []Key {
 	return c.keysList.GetAll()
 }
 
-func (c *CacheLRUInMemory[Key, Value]) MostUsedKey() (Key, error) {
+func (c *CacheLRUInMemory[Key, _]) MostUsedKey() (Key, error) {
 	return c.keysList.GetFirst()
 }
 
-func (c *CacheLRUInMemory[Key, Value]) LeastUsedKey() (Key, error) {
+func (c *CacheLRUInMemory[Key, _]) LeastUsedKey() (Key, error) {
 	return c.keysList.GetLast()
 }

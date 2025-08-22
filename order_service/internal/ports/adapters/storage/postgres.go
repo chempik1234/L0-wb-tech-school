@@ -147,7 +147,6 @@ func (o *OrdersStoragePostgres) getLastOrdersBase(ctx context.Context, limit int
 		From("order_service.orders o").
 		Join("order_service.deliveries d ON d.order_id = o.order_uid").
 		Join("order_service.payments p ON p.order_id = o.order_uid").
-		Join("order_service.order_items i ON i.order_id = o.order_uid").
 		OrderBy("o.created_at DESC").
 		Limit(uint64(limit)).
 		PlaceholderFormat(squirrel.Dollar).
@@ -167,7 +166,7 @@ func (o *OrdersStoragePostgres) getLastOrdersBase(ctx context.Context, limit int
 	var orders = make([]models.Order, 0)
 	for rows.Next() {
 		var order models.Order
-		err = o.pool.QueryRow(context.Background(), sql, args...).Scan(
+		err = rows.Scan(
 			// order fields
 			&order.OrderUID, &order.TrackNumber, &order.Entry, &order.Locale, &order.InternalSignature,
 			&order.CustomerID, &order.DeliveryService, &order.ShardKey, &order.SmID, &order.DateCreated,

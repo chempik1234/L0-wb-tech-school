@@ -112,5 +112,11 @@ func (s *OrderService) CacheLastOrders(ctx context.Context, limit int) error {
 			zap.Int("limit", limit), zap.Error(err))
 		return fmt.Errorf("error caching last orders to cache: %w", err)
 	}
+
+	logger.GetLoggerFromCtx(ctx).Info(ctx, "cached last orders",
+		zap.Int("count", len(lastOrders)),
+		zap.Int("total", s.cache.GetKeysAmount()),
+	)
+
 	return nil
 }

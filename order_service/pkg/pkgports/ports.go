@@ -13,6 +13,12 @@ type Cache[Key comparable, Value any] interface {
 
 	// Get returns value, ok, err (idempotent)
 	Get(ctx context.Context, key Key) (Value, bool, error)
+
+	// GetKeys returns a slice of all saved keys
+	GetKeys() []Key
+
+	// GetKeysAmount returns the amount of saved keys
+	GetKeysAmount() int
 }
 
 // Receiver port describes a message queue consumer that gets orders for save, e.g. kafka

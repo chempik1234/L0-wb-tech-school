@@ -143,7 +143,7 @@ func TestCacheSetExceedCapacityLRUEviction(t *testing.T) {
 	}
 
 	// Now the state is: key1, key2
-	keysList = cache.GetKeysOrder()
+	keysList = cache.GetKeys()
 	if keysList[0] != "key1" || keysList[1] != "key2" {
 		t.Errorf("After read key1 again, keys to be listed as key1, key2, got %v", keysList)
 	}
@@ -155,7 +155,7 @@ func TestCacheSetExceedCapacityLRUEviction(t *testing.T) {
 	}
 
 	// Now the state is: key3, key1
-	keysList = cache.GetKeysOrder()
+	keysList = cache.GetKeys()
 	if keysList[0] != "key3" || keysList[1] != "key1" {
 		t.Errorf("After saving key3, keys to be listed as key3, key1, got %v", keysList)
 	}
@@ -354,13 +354,13 @@ func TestKeysOrder(t *testing.T) {
 		t.Fatalf("Set failed: %v", err)
 	}
 
-	keysOrder := cache.GetKeysOrder()
+	keysOrder := cache.GetKeys()
 	if len(keysOrder) != 3 {
-		t.Errorf("GetKeysOrder failed: expected len 3, got: %d", len(keysOrder))
+		t.Errorf("GetKeys failed: expected len 3, got: %d", len(keysOrder))
 	}
 
 	if keysOrder[0] != "key3" || keysOrder[1] != "key2" || keysOrder[2] != "key1" {
-		t.Errorf("GetKeysOrder failed: incorrect order, expected key3, key2, key1, got: %v", keysOrder)
+		t.Errorf("GetKeys failed: incorrect order, expected key3, key2, key1, got: %v", keysOrder)
 	}
 
 	// check most used key
